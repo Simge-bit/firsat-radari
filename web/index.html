@@ -7,20 +7,17 @@
 <meta name="description" content="Ürününü yaz; hangi ülkede talebin büyüdüğünü, Türkiye'nin payını ve rakiplerini resmi ticaret verisiyle gör.">
 <meta property="og:title" content="Fırsat Radarı">
 <meta property="og:description" content="İhracatçılar için resmi ticaret verisiyle pazar analizi.">
-<meta name="theme-color" content="#f3eee3">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2316130e'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23f3eee3' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='4.5' fill='none' stroke='%23f3eee3' stroke-width='2'/%3E%3Cpath d='M16 16 23 9' stroke='%23e2421b' stroke-width='2.4'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0b0c0f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e30a17'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Cpath d='M16 16 22.5 9.5' stroke='%23fff' stroke-width='2.6' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body class="view-home">
 <a class="skip" href="#icerik">İçeriğe geç</a>
 
-<header class="masthead">
+<header class="top">
   <div class="wrap">
     <a class="brand" href="/" data-home>
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="8.2"/><circle cx="10" cy="10" r="4"/><path d="M10 10 16 4.4"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><circle cx="16" cy="16" r="9" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M16 16 22.5 9.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="2.2" fill="#fff"/></svg>
       Fırsat Radarı
     </a>
     <div id="head-search"></div>
@@ -32,118 +29,105 @@
   </div>
 </header>
 
+<a class="ticker" id="ticker" href="/rapor/080222" data-hs6="080222" hidden>
+  <span class="ticker-label"><i class="live"></i>Canlı · İç fındık</span>
+  <span class="ticker-window"><span class="ticker-track" id="ticker-track"></span></span>
+</a>
+
 <main id="icerik">
   <!-- Ana sayfa -->
   <div class="home">
     <section class="hero wrap">
-      <div>
-        <div class="label">İhracatçılar için pazar analizi</div>
-        <h1>Ürününü yaz, <em>nereye</em> satacağını gör.</h1>
+      <div class="hero-copy">
+        <p class="eyebrow">İhracatçılar için pazar analizi</p>
+        <h1>Ürününü yaz, nereye satacağını gör.</h1>
         <p class="lead">Hangi ülkede talep büyüyor, o pazarda Türkiye'nin payı ne, karşında hangi rakipler var. Haftalar süren pazar araştırması, resmi veriyle saniyeler içinde.</p>
         <div id="hero-search">
           <form id="form" class="searchform" role="search">
             <div class="search">
+              <svg class="glass" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4" stroke-linecap="round"/></svg>
               <input id="gtip" name="gtip" placeholder="Ürün adı ya da GTİP kodu" autocomplete="off" spellcheck="false"
                      aria-label="Ürün adı ya da GTİP kodu" aria-autocomplete="list" aria-controls="suggest" required>
               <ul id="suggest" role="listbox" hidden></ul>
             </div>
-            <button class="go" id="go"><span>Raporu getir</span> <span aria-hidden="true">→</span></button>
+            <button class="go" id="go">Raporu getir</button>
           </form>
         </div>
         <div class="examples">
-          <span class="label">Örnek</span>
+          <span>Örnek:</span>
           <a class="chip" href="/rapor/080222" data-hs6="080222">İç fındık</a>
           <a class="chip" href="/rapor/570242" data-hs6="570242">Makine halısı</a>
           <a class="chip" href="/rapor/150920" data-hs6="150920">Sızma zeytinyağı</a>
           <a class="chip" href="/rapor/251512" data-hs6="251512">Blok mermer</a>
         </div>
       </div>
-      <svg class="radar" viewBox="0 0 400 400" aria-hidden="true">
-        <defs>
-          <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#e2421b" stop-opacity=".5"/><stop offset="1" stop-color="#e2421b" stop-opacity="0"/>
-          </linearGradient>
-        </defs>
-        <circle class="ring" cx="200" cy="200" r="190"/><circle class="ring" cx="200" cy="200" r="142"/>
-        <circle class="ring" cx="200" cy="200" r="94"/><circle class="ring" cx="200" cy="200" r="46"/>
-        <line class="cross" x1="10" y1="200" x2="390" y2="200"/><line class="cross" x1="200" y1="10" x2="200" y2="390"/>
-        <g class="sweep">
-          <path d="M200 200 L200 10 A190 190 0 0 1 334.3 65.7 Z" fill="url(#beam)"/>
-          <line x1="200" y1="200" x2="200" y2="10" stroke="#e2421b" stroke-width="2"/>
-        </g>
-        <circle class="blip" cx="286" cy="118" r="6" style="animation-delay:.55s"/>
-        <circle class="blip" cx="318" cy="246" r="4.5" style="animation-delay:1.6s"/>
-        <circle class="blip" cx="150" cy="300" r="5.5" style="animation-delay:2.9s"/>
-        <circle class="blip" cx="96" cy="150" r="4" style="animation-delay:4s"/>
-        <circle cx="200" cy="200" r="4" fill="#16130e"/>
-      </svg>
-    </section>
-
-    <section class="facts wrap" aria-label="Kapsam">
-      <div><b>5.911</b><span>ürün kodu, Türkçe adıyla aranabilir</span></div>
-      <div><b>150+</b><span>ülkenin resmi ithalat verisi</span></div>
-      <div><b>5 yıl</b><span>üzerinden hesaplanan talep eğilimi</span></div>
-      <div><b>Resmi</b><span>kaynak: yalnızca gümrük kayıtları, tahmin yok</span></div>
-    </section>
-
-    <section class="band" id="ornek" hidden>
-      <div class="wrap preview">
-        <div>
-          <div class="label">Canlı örnek</div>
-          <h2>İç fındık için bugün en iyi beş pazar</h2>
-          <p>Aşağıdaki sıralama hazır bir görsel değil. Sistemin şu an ürettiği gerçek rapordan alındı.</p>
-          <a class="button" href="/rapor/080222" data-hs6="080222">Tam raporu aç <span aria-hidden="true">→</span></a>
+      <div class="panel preview" id="preview" hidden>
+        <div class="panel-head">
+          <span><b>İç fındık</b> <span class="code">0802.22</span></span>
+          <span class="live-tag"><i class="live"></i>Canlı veri</span>
         </div>
-        <div class="scroll"><table class="ledger" id="preview-table"></table></div>
+        <table class="grid" id="preview-table"></table>
+        <a class="panel-foot" href="/rapor/080222" data-hs6="080222">Tam raporu aç →</a>
+      </div>
+    </section>
+
+    <section class="wrap" aria-label="Kapsam">
+      <div class="stats">
+        <div><b>5.911</b><span>ürün kodu, Türkçe adıyla aranabilir</span></div>
+        <div><b>150+</b><span>ülkenin resmi ithalat verisi</span></div>
+        <div><b>5 yıl</b><span>üzerinden hesaplanan talep eğilimi</span></div>
+        <div><b>Resmi</b><span>kaynak: yalnızca gümrük kayıtları</span></div>
       </div>
     </section>
 
     <section class="wrap block" id="nasil">
-      <div class="block-head"><span class="label">Nasıl çalışır</span><h2>Üç adımda pazar kararı</h2></div>
-      <div class="steps">
-        <div><span class="label">01</span><b>Ürününü yaz</b><p>Adını yazman yeterli. Gümrük kodunu sistem resmi tarife cetvelinden bulur, yazım hatasını tolere eder.</p></div>
-        <div><span class="label">02</span><b>Pazarları karşılaştır</b><p>Her ülke; talep büyümesi, pazar büyüklüğü, Türkiye'ye kalan boşluk ve rekabet yapısına göre puanlanır.</p></div>
-        <div><span class="label">03</span><b>Rakibini tanı</b><p>Seçtiğin pazarda kim satıyor, payı ne, ortalama fiyat nerede. Hepsi tek ekranda, kaynağıyla birlikte.</p></div>
+      <h2>Üç adımda pazar kararı</h2>
+      <div class="cards three">
+        <div class="panel pad"><span class="step">1</span><h3>Ürününü yaz</h3><p>Adını yazman yeterli. Gümrük kodunu sistem resmi tarife cetvelinden bulur, yazım hatasını tolere eder.</p></div>
+        <div class="panel pad"><span class="step">2</span><h3>Pazarları karşılaştır</h3><p>Her ülke; talep büyümesi, pazar büyüklüğü, Türkiye'ye kalan boşluk ve rekabet yapısına göre puanlanır.</p></div>
+        <div class="panel pad"><span class="step">3</span><h3>Rakibini tanı</h3><p>Seçtiğin pazarda kim satıyor, payı ne, ortalama fiyat nerede. Hepsi tek ekranda, kaynağıyla birlikte.</p></div>
       </div>
     </section>
 
     <section class="wrap block" id="rapor-icerigi">
-      <div class="block-head"><span class="label">Raporda ne var</span><h2>Karar vermek için gereken her şey</h2></div>
-      <div class="features">
-        <div><b>Pazar sıralaması</b><p>Ürününü ithal eden tüm ülkeler 0-100 arası fırsat skoruyla sıralanır. İlk üç pazar gerekçesiyle öne çıkarılır.</p></div>
-        <div><b>Talep eğilimi</b><p>Her ülkenin son beş yıllık ithalatı ve yıllık büyüme oranı. Tek yıllık sıçramalar değil, eğilim ölçülür.</p></div>
-        <div><b>Rakip analizi</b><p>O pazara kim satıyor, payları ne, Türkiye nerede duruyor. Pazarın tek bir tedarikçiye bağlı olup olmadığı da görünür.</p></div>
-        <div><b>Fiyat seviyesi</b><p>Ülkenin ortalama ithal birim fiyatı. Kendi fiyatının o pazarda nereye oturduğunu görürsün.</p></div>
-        <div><b>Veri güveni</b><p>Verisi eksik ya da eski olan ülkeler işaretlenir. Aktarma merkezi olabilecek pazarlar ayrıca uyarı alır.</p></div>
-        <div class="soon"><b>Yakında</b><p>Gümrük vergisi karşılaştırması, lojistik mesafesi ve o ülkedeki potansiyel alıcı listesi.</p></div>
+      <h2>Raporda ne var</h2>
+      <div class="cards three">
+        <div class="panel pad"><h3>Pazar sıralaması</h3><p>Ürününü ithal eden tüm ülkeler 0-100 arası fırsat skoruyla sıralanır. İlk üç pazar gerekçesiyle öne çıkarılır.</p></div>
+        <div class="panel pad"><h3>Talep eğilimi</h3><p>Her ülkenin son beş yıllık ithalatı ve yıllık büyüme oranı. Tek yıllık sıçramalar değil, eğilim ölçülür.</p></div>
+        <div class="panel pad"><h3>Rakip analizi</h3><p>O pazara kim satıyor, payları ne, Türkiye nerede duruyor. Pazarın tek bir tedarikçiye bağlı olup olmadığı da görünür.</p></div>
+        <div class="panel pad"><h3>Fiyat seviyesi</h3><p>Ülkenin ortalama ithal birim fiyatı. Kendi fiyatının o pazarda nereye oturduğunu görürsün.</p></div>
+        <div class="panel pad"><h3>Veri güveni</h3><p>Verisi eksik ya da eski olan ülkeler işaretlenir. Aktarma merkezi olabilecek pazarlar ayrıca uyarı alır.</p></div>
+        <div class="panel pad soon"><h3>Yakında</h3><p>Gümrük vergisi karşılaştırması, lojistik mesafesi ve o ülkedeki potansiyel alıcı listesi.</p></div>
       </div>
     </section>
 
-    <section class="band" id="yontem">
-      <div class="wrap method">
-        <div>
-          <div class="label">Yöntem ve kaynaklar</div>
-          <h2>Skor nasıl hesaplanıyor</h2>
+    <section class="wrap block" id="yontem">
+      <h2>Skor nasıl hesaplanıyor</h2>
+      <div class="cards two">
+        <div class="panel pad">
           <p>Fırsat skoru, dört ölçünün ağırlıklı toplamıdır. Her ölçü ayrı hesaplanır ve raporda ayrı gösterilir; bir ülkenin neden üstte olduğunu her zaman görebilirsin.</p>
-          <p>Küçük pazarlarda ve ithal ettiğini yeniden ihraç eden ülkelerde büyüme oranı yanıltıcı olabilir. Bu durumlarda oran skora daha az yansıtılır.</p>
+          <ul class="weights">
+            <li><span>Talep büyümesi</span><i><b style="width:36%"></b></i><em>%36</em></li>
+            <li><span>Pazar büyüklüğü</span><i><b style="width:29%"></b></i><em>%29</em></li>
+            <li><span>Türkiye için boşluk</span><i><b style="width:21%"></b></i><em>%21</em></li>
+            <li><span>Pazarın parçalılığı</span><i><b style="width:14%"></b></i><em>%14</em></li>
+          </ul>
+          <p class="muted">Küçük pazarlarda ve ithal ettiğini yeniden ihraç eden ülkelerde büyüme oranı yanıltıcı olabilir. Bu durumlarda oran skora daha az yansıtılır.</p>
         </div>
-        <ul class="weights">
-          <li><span>Talep büyümesi</span><i><b style="width:36%"></b></i><em>%36</em></li>
-          <li><span>Pazar büyüklüğü</span><i><b style="width:29%"></b></i><em>%29</em></li>
-          <li><span>Türkiye için boşluk</span><i><b style="width:21%"></b></i><em>%21</em></li>
-          <li><span>Pazarın parçalılığı</span><i><b style="width:14%"></b></i><em>%14</em></li>
-        </ul>
-        <dl class="sources">
-          <dt>Ticaret verisi</dt><dd><a href="https://comtradeplus.un.org" target="_blank" rel="noopener">UN Comtrade</a>, ülkelerin Birleşmiş Milletler'e bildirdiği resmi gümrük istatistikleri</dd>
-          <dt>Ürün adları</dt><dd><a href="https://ticaret.gov.tr/gumruk-islemleri/mevzuat/cumhurbaskanligi-karari-bkk" target="_blank" rel="noopener">T.C. Ticaret Bakanlığı</a>, 2026 Türk Gümrük Tarife Cetveli</dd>
-          <dt>Kapsam</dt><dd>Analiz, ürün kodunun uluslararası ortak olan ilk 6 hanesi üzerinden yapılır</dd>
-        </dl>
+        <div class="panel pad">
+          <h3>Kaynaklar</h3>
+          <dl class="sources">
+            <dt>Ticaret verisi</dt><dd><a href="https://comtradeplus.un.org" target="_blank" rel="noopener">UN Comtrade</a>: ülkelerin Birleşmiş Milletler'e bildirdiği resmi gümrük istatistikleri</dd>
+            <dt>Ürün adları</dt><dd><a href="https://ticaret.gov.tr/gumruk-islemleri/mevzuat/cumhurbaskanligi-karari-bkk" target="_blank" rel="noopener">T.C. Ticaret Bakanlığı</a>: 2026 Türk Gümrük Tarife Cetveli</dd>
+            <dt>Kapsam</dt><dd>Analiz, ürün kodunun uluslararası ortak olan ilk 6 hanesi üzerinden yapılır</dd>
+          </dl>
+        </div>
       </div>
     </section>
 
     <section class="wrap block" id="sss">
-      <div class="block-head"><span class="label">Sık sorulanlar</span><h2>Merak edilenler</h2></div>
-      <div class="faq">
+      <h2>Sık sorulanlar</h2>
+      <div class="panel faq">
         <details><summary>GTİP kodumu bilmiyorum, yine de kullanabilir miyim?</summary><p>Evet. Ürününün adını yazman yeterli; sistem resmi tarife cetvelinde arar ve eşleşen ürünleri listeler. Birden fazla eşleşme varsa kendi ürününü listeden seçersin.</p></details>
         <details><summary>Veriler ne kadar güncel?</summary><p>Resmi ticaret istatistikleri gecikmeli yayımlanır. Sistem, yeterli sayıda ülkenin raporladığı en son tam yılı kullanır ve bu yılı her raporun başında gösterir.</p></details>
         <details><summary>Skor 80 çıktı, bu iyi mi?</summary><p>Skor mutlak bir not değildir. Aynı ürünün aday ülkeleri arasındaki sıralamayı gösterir. Farklı ürünlerin skorlarını birbiriyle karşılaştırmak anlamlı olmaz.</p></details>
@@ -163,15 +147,15 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <div class="brand">Fırsat Radarı</div>
+      <b>Fırsat Radarı</b>
       <p>İhracatçılar için resmi ticaret verisiyle pazar analizi. Prototip sürüm.</p>
     </div>
     <div>
-      <div class="label">Kaynaklar</div>
+      <b>Kaynaklar</b>
       <p>UN Comtrade<br>T.C. Ticaret Bakanlığı, Türk Gümrük Tarife Cetveli 2026</p>
     </div>
     <div>
-      <div class="label">Sorumluluk reddi</div>
+      <b>Sorumluluk reddi</b>
       <p>Bu sitedeki analizler bilgilendirme amaçlıdır; ticari ya da hukuki tavsiye değildir. Kararlarını vermeden önce verileri resmi kaynaklardan doğrula.</p>
     </div>
   </div>
