@@ -7,7 +7,7 @@ import math
 import re
 from pathlib import Path
 
-from radar import comtrade, model, urunler
+from radar import comtrade, giris, model, sartlar, urunler
 
 OUT_DIR = Path(__file__).resolve().parent / "cikti"
 
@@ -79,9 +79,17 @@ def build(hs6, max_countries=None):
         row["tr_share"] = shares.get(comtrade.TURKIYE, 0.0)
         row["H"] = 1 - row["tr_share"]
         row["F"] = 1 - model.hhi(shares.values())
+        # Birim fiyat = değer / net ağırlık; ağırlık bildirilmemişse hesaplanmaz.
+        unit_price = {code: value / weight for code, (value, weight) in partners.items() if weight}
+        row["tr_unit_price"] = unit_price.get(comtrade.TURKIYE)
+        row["tr_rank"] = 1 + sum(share > row["tr_share"] for share in shares.values()) if row["tr_share"] > 0 else None
+        row["suppliers"] = len(shares)
+        row["offices"] = giris.offices(row["iso2"])
+        row["fairs"] = giris.fairs(row["iso2"], hs6)
+        row["requirements"] = sartlar.checklist(hs6, row["iso2"])
         top = sorted(((share, code) for code, share in shares.items() if code != comtrade.TURKIYE), reverse=True)[:5]
         row["rivals"] = [{"country": names.get(code, (str(code), None))[0], "iso2": names.get(code, (None, None))[1],
-                          "share": share} for share, code in top]
+                          "share": share, "unit_price": unit_price.get(code)} for share, code in top]
 
     model.adjust_growth(candidates, m_min)
     return {"hs6": hs6, "product": comtrade.product_name(hs6), "product_path": urunler.path(hs6),

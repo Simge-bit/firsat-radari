@@ -7,7 +7,10 @@ const REASONS = {
   H: "Türkiye'nin payı düşük, büyüme alanı geniş", F: "tedarik tek bir ülkeye bağlı değil",
 };
 const VISIBLE_ROWS = 20;
+const LOCKED_ROWS = 9;                    // kilitli önizlemede gösterilen boş satır sayısı
+const PRICES = { single: 190, pro: 490 }; // TL; tek rapor tek seferlik, Pro aylık
 const TITLE = document.title;
+const LOCK_ICON = '<svg class="lock-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg>';
 
 const $ = (id) => document.getElementById(id);
 const esc = (text) => String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -55,6 +58,31 @@ function whyText(row) {
   return text.charAt(0).toLocaleUpperCase("tr-TR") + text.slice(1) + ".";
 }
 
+/* ---------- Erişim (demo) ---------- */
+
+// Demo sürümde hesap ve gerçek ödeme yoktur: açılan paketler yalnızca bu tarayıcıda saklanır.
+// Gerçek üründe bu kontrol sunucuda yapılmalı ve kilitli veri tarayıcıya hiç gönderilmemelidir.
+const access = { pro: false, reports: [] };
+try {
+  Object.assign(access, JSON.parse(localStorage.getItem("fr-erisim")) || {});
+} catch (error) { /* depolama kapalıysa ücretsiz planla devam */ }
+
+function saveAccess() {
+  try { localStorage.setItem("fr-erisim", JSON.stringify(access)); } catch (error) { /* yalnızca bu oturumda geçerli olur */ }
+  renderPlan();
+}
+
+const isUnlocked = (hs6) => access.pro || access.reports.includes(hs6);
+
+function renderPlan() {
+  $("plan").textContent = access.pro ? "Pro" : "Ücretsiz plan";
+  $("plan").classList.toggle("pro", access.pro);
+  const buyPro = $("buy-pro");
+  buyPro.textContent = access.pro ? "Aktif plan" : "Pro'ya geç";
+  buyPro.disabled = access.pro;
+  document.querySelectorAll("[data-price]").forEach((node) => { node.textContent = PRICES[node.dataset.price]; });
+}
+
 /* ---------- Rapor ---------- */
 
 let current = null;                       // ekrandaki rapor
@@ -86,6 +114,29 @@ function hbar(label, share, text, cls = "") {
   return `<div class="hbar ${cls}" data-tip="${esc(label)}: ${esc(text)}"><span>${esc(label)}</span><i><b style="width:${Math.min(100, share * 100)}%"></b></i><em>${esc(text)}</em></div>`;
 }
 
+// Pazara giriş: resmi listelerden müşavirlik iletişimi, destekli fuarlar ve (AB için) şart kaynağı.
+function entrySection(row) {
+  const now = today(), link = requirementsLink(row, current.hs6);
+  const offices = row.offices.length
+    ? `<ul class="contacts">${row.offices.map((office) => `<li><span>${esc(office.sehir)}</span><a href="mailto:${esc(office.eposta)}">${esc(office.eposta)}</a></li>`).join("")}</ul>
+       <a class="ghost wide" href="${esc(importerRequestLink(row.offices[0], row, current))}">İthalatçı listesi iste</a>
+       <div class="sub">Hazır e-posta açılır: müşavirlikten bu ürünü ithal eden firmaların listesini talep eder.</div>`
+    : '<div class="sub">Bu ülkede Ticaret Bakanlığı\'nın müşavirliği ya da ataşeliği bulunmuyor.</div>';
+  const fairs = row.fairs.length
+    ? `<ul class="fairs">${row.fairs.map((fair) => `<li class="${fair.bitis < now ? "past" : ""}"><b>${esc(fair.ad)}</b>
+        <span>${esc(fair.sehir)} · ${esc(fairDates(fair))}${fair.bitis < now ? " · geçti" : ""}</span><small>${esc(shorten(fair.konu.toLocaleLowerCase("tr-TR"), 70))}</small></li>`).join("")}</ul>`
+    : '<div class="sub">Bu ülkede ürününün sektörüyle eşleşen destekli fuar bulunamadı.</div>';
+  return `<div class="d-sec"><h3>Ticaret Müşavirliği <span>T.C. Ticaret Bakanlığı</span></h3>${offices}</div>
+    <div class="d-sec"><h3>İlgili destekli fuarlar <span>2026</span></h3>${fairs}</div>
+    <div class="d-sec"><h3>Olası şartlar <span>kontrol listesi</span></h3>
+      ${row.requirements.length ? `<ul class="reqs">${row.requirements.map((item) => `<li><b>${esc(item.baslik)}</b><p>${esc(item.metin)}</p>
+        <a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.kurum)} ↗</a></li>`).join("")}</ul>`
+        : '<div class="sub">Bu ülke için hazır bir kontrol listemiz yok. Şartları Ticaret Müşavirliği\'nden öğrenebilirsin.</div>'}
+      ${link ? `<a class="ghost wide" href="${esc(link)}" target="_blank" rel="noopener">Bu ürünün resmi AB şartlarını gör ↗</a>` : ""}
+      ${row.requirements.length ? '<div class="sub">Genel bilgilendirmedir; resmi veri değildir ve eksik olabilir. Sevkiyattan önce ilgili kurumdan doğrula.</div>' : ""}
+    </div>`;
+}
+
 function renderDetail() {
   const row = current.rows.find((item) => item.code === selected);
   const suppliers = [{ label: "Türkiye", share: row.tr_share, cls: "tr" }]
@@ -93,20 +144,14 @@ function renderDetail() {
     .sort((a, b) => b.share - a.share);
   const factors = Object.keys(FACTORS).filter((key) => key in row.z)
     .map((key) => hbar(FACTORS[key], row.z[key], num(row.z[key] * 100, 0), "factor")).join("");
-  const price = row.unit_price ? `Ortalama ithal birim fiyatı ${num(row.unit_price, 2)} $/kg` : "Birim fiyat verisi yok";
-  let flag = "";
-  if (isHub(row)) {
-    flag = `Bu ülke, ithal ettiği ürünün ${pct(row.reexport)} kadarını yeniden ihraç ediyor. Aktarma merkezi olabilir: artış iç talebi göstermeyebilir, bu yüzden büyüme oranı skora daha az yansıtıldı.`;
-  } else if (row.growth_trust < 0.5) {
-    flag = "Pazar küçük olduğu için birkaç sevkiyat büyüme oranını uçurabilir. Bu yüzden büyüme oranı skora daha az yansıtıldı.";
-  }
   $("detail").innerHTML = `
     <div class="d-head">
       <div class="name">${esc(nameOf(row))}<small>${row.rank}. sıra · ${esc(million(row.imports))} pazar · ${growthCell(row.G_raw)}</small></div>
       <div class="big">${num(row.score, 0)}<small>Skor</small></div>
     </div>
-    ${flag ? `<div class="flag">${esc(flag)}</div>` : ""}
-    <div class="d-sec"><h3>İthalat, milyon $</h3>${trendChart(row)}<div class="sub">${esc(price)}</div></div>
+    <div class="d-sec"><h3>Değerlendirme</h3><ul class="notes">${marketInsights(row).map((line) => `<li class="${line.startsWith("Dikkat") ? "warn" : ""}">${esc(line)}</li>`).join("")}</ul></div>
+    ${entrySection(row)}
+    <div class="d-sec"><h3>İthalat, milyon $</h3>${trendChart(row)}</div>
     <div class="d-sec"><h3>Tedarikçi payları <span>${row.year}</span></h3>${suppliers.map((s) => hbar(s.label, s.share, pct(s.share), s.cls)).join("")}</div>
     <div class="d-sec"><h3>Neden bu sırada <span>0-100</span></h3>${factors}<div class="sub">Her faktör aday ülkeler arasında ölçeklenir. Veri güveni: ${confidenceLabel(row.kappa).toLowerCase()}.</div></div>`;
 }
@@ -118,26 +163,52 @@ const COLUMNS = [
   { key: "tr_share", label: "Türkiye payı", cls: "col-share" },
 ];
 
+const rowHtml = (row) => `
+    <tr class="row${row.code === selected ? " selected" : ""}" data-code="${row.code}" tabindex="0" aria-selected="${row.code === selected}">
+      <td>${row.rank}</td>
+      <td>${isoTag(row.iso2)}${esc(nameOf(row))}${isHub(row) ? '<span class="badge">Aktarma</span>' : ""}</td>
+      <td>${scoreCell(row.score)}</td><td>${esc(num(row.imports / 1e6))}</td><td>${growthCell(row.G_raw)}</td>
+      <td class="col-share">${esc(pct(row.tr_share))}</td><td class="col-conf">${confidenceLabel(row.kappa)}</td></tr>`;
+
+// Kilitli önizleme: yalnızca birinci pazar gerçek veriyle, kalanı içi boş satırlarla çizilir.
+function renderLockedTable() {
+  const hidden = current.rows.length - 1;
+  const mask = (width) => `<span class="mask" style="width:${width}px"></span>`;
+  const blanks = Array.from({ length: Math.min(LOCKED_ROWS, hidden) }, (_, index) => `
+    <tr class="locked" aria-hidden="true"><td>${index + 2}</td><td>${mask(84 + (index * 37) % 72)}</td><td>${mask(78)}</td>
+      <td>${mask(46)}</td><td>${mask(54)}</td><td class="col-share">${mask(44)}</td><td class="col-conf">${mask(46)}</td></tr>`).join("");
+  const head = COLUMNS.map((column) => `<th class="${column.cls || ""}">${column.label}</th>`).join("");
+  $("markets").innerHTML = `<div class="locked-wrap"><div class="scroll"><table class="grid">
+      <thead><tr><th>#</th><th>Ülke</th>${head}<th class="col-conf">Veri güveni</th></tr></thead>
+      <tbody>${rowHtml(current.rows[0])}${blanks}</tbody></table></div>
+    ${hidden > 0 ? `<div class="paywall"><div class="paywall-card">
+      <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
+      <h3>${hidden} pazar daha var</h3>
+      <p>Ücretsiz planda her raporun en iyi pazarını görürsün. Tüm sıralama, ülke detayları ve PDF için raporu aç.</p>
+      <div class="paywall-btns">
+        <button type="button" class="go" data-buy="single">Bu raporu aç · ${PRICES.single} TL</button>
+        <button type="button" class="ghost" data-buy="pro">Pro'ya geç · ${PRICES.pro} TL/ay</button>
+      </div>
+      <a class="compare" href="/paketler" data-route>Paketleri karşılaştır</a>
+    </div></div>` : ""}</div>`;
+}
+
 function renderTable() {
+  if (!isUnlocked(current.hs6)) return renderLockedTable();
   const rows = [...current.rows].sort((a, b) => sort.dir * (a[sort.key] - b[sort.key]));
   const visible = showAll ? rows : rows.slice(0, VISIBLE_ROWS);
   const head = COLUMNS.map((column) => {
     const sorted = sort.key === column.key ? ` aria-sort="${sort.dir < 0 ? "descending" : "ascending"}"` : "";
     return `<th class="${column.cls || ""}"${sorted}><button type="button" data-sort="${column.key}">${column.label}</button></th>`;
   }).join("");
-  const body = visible.map((row) => `
-    <tr class="row${row.code === selected ? " selected" : ""}" data-code="${row.code}" tabindex="0" aria-selected="${row.code === selected}">
-      <td>${row.rank}</td>
-      <td>${isoTag(row.iso2)}${esc(nameOf(row))}${isHub(row) ? '<span class="badge">Aktarma</span>' : ""}</td>
-      <td>${scoreCell(row.score)}</td><td>${esc(num(row.imports / 1e6))}</td><td>${growthCell(row.G_raw)}</td>
-      <td class="col-share">${esc(pct(row.tr_share))}</td><td class="col-conf">${confidenceLabel(row.kappa)}</td></tr>`).join("");
   $("markets").innerHTML = `<div class="scroll"><table class="grid">
       <thead><tr><th>#</th><th>Ülke</th>${head}<th class="col-conf">Veri güveni</th></tr></thead>
-      <tbody>${body}</tbody></table></div>
+      <tbody>${visible.map(rowHtml).join("")}</tbody></table></div>
     ${rows.length > VISIBLE_ROWS ? `<button type="button" class="more" id="more">${showAll ? "İlk " + VISIBLE_ROWS + " ülkeyi göster" : "Tüm " + rows.length + " ülkeyi göster"}</button>` : ""}`;
 }
 
 function select(code, fromKeyboard = false) {
+  if (!isUnlocked(current.hs6) && code !== current.rows[0].code) return openCheckout("single");
   selected = code;
   renderTable();
   renderDetail();
@@ -164,14 +235,29 @@ function renderReport(report) {
   const biggest = rows.reduce((a, b) => (b.imports > a.imports ? b : a));
   const fastest = rows.reduce((a, b) => (b.G > a.G ? b : a));
   const group = report.growth_basis ? report.growth_basis.slice(0, 2) + "." + report.growth_basis.slice(2) : "";
-  const picks = rows.slice(0, 3).map((row, index) => `
+  const open = isUnlocked(report.hs6);
+  const lockedPick = (index) => `
+    <button type="button" class="panel pick is-locked" data-buy="single">
+      <span class="pick-top"><span class="order">${index + 1}</span><span class="country">${index + 1}. pazar</span></span>
+      <span class="locked-line">${LOCK_ICON}Tam raporda</span></button>`;
+  const lockedKpi = (label) => `<div class="is-locked"><span>${label}</span><b>${LOCK_ICON}Tam raporda</b><small>&nbsp;</small></div>`;
+  const picks = rows.slice(0, 3).map((row, index) => (!open && index > 0 ? lockedPick(index) : `
     <button type="button" class="panel pick${index === 0 ? " selected" : ""}" data-code="${row.code}">
       <span class="pick-top"><span class="order">${index + 1}</span><span class="country">${esc(nameOf(row))}</span>
         <span class="big">${num(row.score, 0)}<small>skor</small></span></span>
       <p class="why">${esc(whyText(row))}</p>
       <dl><dt>Pazar</dt><dd>${esc(million(row.imports))}</dd>
         <dt>Büyüme</dt><dd>${growthCell(row.G_raw)}</dd>
-        <dt>Türkiye payı</dt><dd>${esc(pct(row.tr_share))}</dd></dl></button>`).join("");
+        <dt>Türkiye payı</dt><dd>${esc(pct(row.tr_share))}</dd></dl></button>`)).join("");
+
+  // Ücretsiz planda yalnızca ülke adı içermeyen içgörü gösterilir; kalanı kilitli pazarları ele verir.
+  const insights = summaryInsights(report);
+  const shown = open ? insights : insights.filter((item) => item.title === "Türkiye'nin konumu");
+  const insightPanel = `<section class="panel insights">
+      <div class="panel-head"><b>Öne çıkanlar</b><span class="count">Veriden hesaplanan değerlendirme</span></div>
+      <div class="insight-grid">${shown.map((item) => `<div><h3>${item.title}</h3><p>${esc(item.text)}</p></div>`).join("")}
+        ${open ? "" : `<button type="button" class="insight-lock" data-buy="single">${LOCK_ICON}${insights.length - shown.length} içgörü daha tam raporda</button>`}</div>
+    </section>`;
 
   document.title = shorten(labels.title, 50) + " · Fırsat Radarı";
   $("report").innerHTML = `
@@ -183,19 +269,21 @@ function renderReport(report) {
       </div>
       <div class="actions">
         <button type="button" class="ghost" id="copy">Bağlantıyı kopyala</button>
-        <button type="button" class="ghost" id="print">PDF indir</button>
+        <button type="button" class="ghost" id="print">${open ? "" : LOCK_ICON}PDF indir</button>
       </div>
     </div>
     <div class="kpis">
       <div><span>Aday pazarların ithalatı</span><b>${esc(million(total))}</b><small>${rows.length} ülke toplamı</small></div>
       <div><span>Türkiye'nin payı</span><b>${esc(pct(total ? fromTurkiye / total : 0))}</b><small>${esc(million(fromTurkiye))} ihracat</small></div>
-      <div><span>En büyük pazar</span><b>${esc(nameOf(biggest))}</b><small>${esc(million(biggest.imports))}</small></div>
-      <div><span>En güçlü büyüme</span><b>${esc(nameOf(fastest))}</b><small>yılda ${esc(pct(fastest.G_raw))}</small></div>
+      ${open ? `<div><span>En büyük pazar</span><b>${esc(nameOf(biggest))}</b><small>${esc(million(biggest.imports))}</small></div>
+      <div><span>En güçlü büyüme</span><b>${esc(nameOf(fastest))}</b><small>yılda ${esc(pct(fastest.G_raw))}</small></div>`
+    : lockedKpi("En büyük pazar") + lockedKpi("En güçlü büyüme")}
     </div>
     <div class="picks">${picks}</div>
+    ${insightPanel}
     <div class="board">
       <section class="panel">
-        <div class="panel-head"><b>Tüm pazarlar</b><span class="count">Detay için satıra, sıralamak için başlığa tıkla</span></div>
+        <div class="panel-head"><b>Tüm pazarlar</b><span class="count">${open ? "Detay için satıra, sıralamak için başlığa tıkla" : "Ücretsiz önizleme: en iyi pazar açık"}</span></div>
         <div id="markets"></div>
       </section>
       <aside class="panel" id="detail" aria-live="polite"></aside>
@@ -222,7 +310,7 @@ $("report").addEventListener("click", (event) => {
     return renderTable();
   }
   if (event.target.closest("#more")) { showAll = !showAll; return renderTable(); }
-  if (event.target.closest("#print")) return window.print();
+  if (event.target.closest("#print")) return isUnlocked(current.hs6) ? printDocument() : openCheckout("single");
   const copy = event.target.closest("#copy");
   if (copy) {
     navigator.clipboard.writeText(location.href).then(
@@ -230,7 +318,7 @@ $("report").addEventListener("click", (event) => {
       () => { copy.textContent = "Kopyalanamadı"; });
     return;
   }
-  const target = event.target.closest("tr.row, .pick");
+  const target = event.target.closest("tr.row, .pick[data-code]");
   if (target) select(Number(target.dataset.code));
 });
 $("report").addEventListener("keydown", (event) => {
@@ -277,22 +365,20 @@ async function load(hs6) {
 
 function route() {
   const match = location.pathname.match(/^\/rapor\/(\d{6})\/?$/);
-  document.body.classList.toggle("view-report", Boolean(match));
-  document.body.classList.toggle("view-home", !match);
-  // Arama formu tek bir öğedir; görünüme göre üst şeride ya da giriş bölümüne taşınır.
-  $(match ? "head-search" : "hero-search").appendChild($("form"));
+  const view = match ? "report" : location.pathname === "/paketler" ? "pricing" : "home";
+  ["home", "report", "pricing"].forEach((name) => document.body.classList.toggle("view-" + name, name === view));
+  // Arama formu tek bir öğedir; ana sayfada giriş bölümünde, diğer görünümlerde üst şeritte durur.
+  $(view === "home" ? "hero-search" : "head-search").appendChild($("form"));
   closeSuggestions();
-  if (match) {
-    load(match[1]);
-  } else {
-    loadId++;
-    document.title = TITLE;
-    document.body.classList.remove("loading");
-    $("go").disabled = false;
-    $("status").textContent = "";
-    $("report").innerHTML = "";
-    loadPreview();
-  }
+  if (match) return load(match[1]);
+  loadId++;
+  current = null;
+  document.title = view === "pricing" ? "Paketler · Fırsat Radarı" : TITLE;
+  document.body.classList.remove("loading");
+  $("go").disabled = false;
+  $("status").textContent = "";
+  $("report").innerHTML = "";
+  if (view === "home") loadPreview();
 }
 
 function go(path) {
@@ -304,11 +390,67 @@ function go(path) {
 window.addEventListener("popstate", route);
 document.addEventListener("click", (event) => {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.button) return;
-  const link = event.target.closest("a[data-hs6], a[data-home]");
+  const link = event.target.closest("a[data-hs6], a[data-home], a[data-route]");
   if (!link) return;
   event.preventDefault();
   input.value = "";
-  go(link.dataset.hs6 ? "/rapor/" + link.dataset.hs6 : "/");
+  go(link.getAttribute("href"));
+});
+
+/* ---------- Paket satın alma (demo) ---------- */
+
+const checkout = $("checkout");
+let order = null;                         // { kind: "single" | "pro", hs6 }
+
+function openCheckout(kind) {
+  // Tek rapor bir ürüne bağlıdır: açık bir rapor yoksa önce ürün seçtirilir.
+  if (kind === "single" && !current) {
+    go("/");
+    input.focus();
+    return;
+  }
+  order = { kind, hs6: current ? current.hs6 : null };
+  const single = kind === "single";
+  $("co-title").textContent = single ? "Tek rapor" : "Pro abonelik";
+  $("co-desc").textContent = single
+    ? "GTİP " + dotted(order.hs6) + " için tam rapor: tüm pazarlar, ülke detayları ve PDF."
+    : "Tüm ürünlerde sınırsız tam rapor. İstediğin zaman iptal edebilirsin.";
+  $("co-total").textContent = PRICES[kind] + " TL" + (single ? "" : " / ay");
+  $("co-pay").textContent = PRICES[kind] + " TL öde (demo)";
+  $("co-pay").disabled = false;
+  $("co-form").hidden = false;
+  $("co-done").hidden = true;
+  checkout.showModal();
+}
+
+$("co-pay").addEventListener("click", () => {
+  $("co-pay").disabled = true;
+  $("co-pay").textContent = "İşleniyor…";
+  setTimeout(() => {
+    if (order.kind === "pro") access.pro = true;
+    else if (!access.reports.includes(order.hs6)) access.reports.push(order.hs6);
+    saveAccess();
+    $("co-done-text").textContent = order.kind === "pro"
+      ? "Pro aboneliğin aktif. Artık tüm raporlar açık. (Demo: para çekilmedi.)"
+      : "Bu ürünün tam raporu açıldı. (Demo: para çekilmedi.)";
+    $("co-form").hidden = true;
+    $("co-done").hidden = false;
+    $("co-close").focus();
+  }, 900);
+});
+$("co-cancel").addEventListener("click", () => checkout.close());
+$("co-close").addEventListener("click", () => checkout.close());
+checkout.addEventListener("click", (event) => { if (event.target === checkout) checkout.close(); });
+checkout.addEventListener("close", () => { if (current) renderReport(current); });
+
+document.addEventListener("click", (event) => {
+  const buy = event.target.closest("[data-buy]");
+  if (buy) return openCheckout(buy.dataset.buy);
+  if (event.target.closest("#reset-access")) {
+    access.pro = false;
+    access.reports = [];
+    saveAccess();
+  }
 });
 
 /* ---------- Arama ---------- */
@@ -435,4 +577,5 @@ document.addEventListener("mousemove", (event) => {
   tip.style.top = event.clientY + 14 + "px";
 });
 
+renderPlan();
 route();

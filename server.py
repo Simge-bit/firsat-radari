@@ -12,7 +12,8 @@ from radar import urunler
 
 PORT = 8765
 WEB = Path(__file__).resolve().parent / "web"
-STATIC_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml"}
+STATIC_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml",
+                ".png": "image/png"}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -30,7 +31,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         url = urllib.parse.urlparse(self.path)
         # Rapor adresleri de aynı sayfayı döndürür; hangi raporun açılacağına tarayıcıdaki kod karar verir.
-        if url.path == "/" or url.path.startswith("/rapor/"):
+        if url.path in ("/", "/paketler") or url.path.startswith("/rapor/"):
             self._send(200, "text/html; charset=utf-8", (WEB / "index.html").read_bytes())
         elif url.path.startswith("/static/"):
             file = (WEB / url.path[len("/static/"):]).resolve()

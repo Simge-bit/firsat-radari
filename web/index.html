@@ -7,6 +7,11 @@
 <meta name="description" content="Ürününü yaz; hangi ülkede talebin büyüdüğünü, Türkiye'nin payını ve rakiplerini resmi ticaret verisiyle gör.">
 <meta property="og:title" content="Fırsat Radarı">
 <meta property="og:description" content="İhracatçılar için resmi ticaret verisiyle pazar analizi.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/static/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0b0c0f">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e30a17'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Cpath d='M16 16 22.5 9.5' stroke='%23fff' stroke-width='2.6' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/app.css">
@@ -26,6 +31,10 @@
       <a href="#yontem">Yöntem</a>
       <a href="#sss">Sık sorulanlar</a>
     </nav>
+    <div class="top-right">
+      <a href="/paketler" data-route>Paketler</a>
+      <a class="plan" id="plan" href="/paketler" data-route>Ücretsiz plan</a>
+    </div>
   </div>
 </header>
 
@@ -37,6 +46,7 @@
 <main id="icerik">
   <!-- Ana sayfa -->
   <div class="home">
+    <div class="cover">
     <section class="hero wrap">
       <div class="hero-copy">
         <p class="eyebrow">İhracatçılar için pazar analizi</p>
@@ -60,6 +70,7 @@
           <a class="chip" href="/rapor/150920" data-hs6="150920">Sızma zeytinyağı</a>
           <a class="chip" href="/rapor/251512" data-hs6="251512">Blok mermer</a>
         </div>
+        <p class="trial">Ücretsiz dene, kart gerekmez. <a href="/paketler" data-route>Paketleri gör</a></p>
       </div>
       <div class="panel preview" id="preview" hidden>
         <div class="panel-head">
@@ -70,6 +81,7 @@
         <a class="panel-foot" href="/rapor/080222" data-hs6="080222">Tam raporu aç →</a>
       </div>
     </section>
+    </div>
 
     <section class="wrap" aria-label="Kapsam">
       <div class="stats">
@@ -96,7 +108,7 @@
         <div class="panel pad"><h3>Talep eğilimi</h3><p>Her ülkenin son beş yıllık ithalatı ve yıllık büyüme oranı. Tek yıllık sıçramalar değil, eğilim ölçülür.</p></div>
         <div class="panel pad"><h3>Rakip analizi</h3><p>O pazara kim satıyor, payları ne, Türkiye nerede duruyor. Pazarın tek bir tedarikçiye bağlı olup olmadığı da görünür.</p></div>
         <div class="panel pad"><h3>Fiyat seviyesi</h3><p>Ülkenin ortalama ithal birim fiyatı. Kendi fiyatının o pazarda nereye oturduğunu görürsün.</p></div>
-        <div class="panel pad"><h3>Veri güveni</h3><p>Verisi eksik ya da eski olan ülkeler işaretlenir. Aktarma merkezi olabilecek pazarlar ayrıca uyarı alır.</p></div>
+        <div class="panel pad"><h3>Pazara giriş</h3><p>Her ülke için Ticaret Müşavirliği iletişimi, hazır ithalatçı listesi talebi, desteklenen fuarlar ve olası sertifika şartlarının kontrol listesi.</p></div>
         <div class="panel pad soon"><h3>Yakında</h3><p>Gümrük vergisi karşılaştırması, lojistik mesafesi ve o ülkedeki potansiyel alıcı listesi.</p></div>
       </div>
     </section>
@@ -119,7 +131,8 @@
           <dl class="sources">
             <dt>Ticaret verisi</dt><dd><a href="https://comtradeplus.un.org" target="_blank" rel="noopener">UN Comtrade</a>: ülkelerin Birleşmiş Milletler'e bildirdiği resmi gümrük istatistikleri</dd>
             <dt>Ürün adları</dt><dd><a href="https://ticaret.gov.tr/gumruk-islemleri/mevzuat/cumhurbaskanligi-karari-bkk" target="_blank" rel="noopener">T.C. Ticaret Bakanlığı</a>: 2026 Türk Gümrük Tarife Cetveli</dd>
-            <dt>Kapsam</dt><dd>Analiz, ürün kodunun uluslararası ortak olan ilk 6 hanesi üzerinden yapılır</dd>
+            <dt>Pazara giriş</dt><dd><a href="https://ticaret.gov.tr/yurtdisi-teskilati/yurt-disi-temsilciliklerimiz" target="_blank" rel="noopener">Ticaret Müşavirlikleri listesi</a> ve <a href="https://ticaret.gov.tr/ihracat/fuarlar" target="_blank" rel="noopener">2026 destekli yurt dışı fuarlar</a> (T.C. Ticaret Bakanlığı)</dd>
+          <dt>Kapsam</dt><dd>Analiz, ürün kodunun uluslararası ortak olan ilk 6 hanesi üzerinden yapılır</dd>
           </dl>
         </div>
       </div>
@@ -132,9 +145,61 @@
         <details><summary>Veriler ne kadar güncel?</summary><p>Resmi ticaret istatistikleri gecikmeli yayımlanır. Sistem, yeterli sayıda ülkenin raporladığı en son tam yılı kullanır ve bu yılı her raporun başında gösterir.</p></details>
         <details><summary>Skor 80 çıktı, bu iyi mi?</summary><p>Skor mutlak bir not değildir. Aynı ürünün aday ülkeleri arasındaki sıralamayı gösterir. Farklı ürünlerin skorlarını birbiriyle karşılaştırmak anlamlı olmaz.</p></details>
         <details><summary>Neden 12 haneli kodun tamamı kullanılmıyor?</summary><p>Ülkeler arasında ortak olan yalnızca ilk 6 hanedir. Sonraki haneler her ülkenin kendi alt kırılımıdır, bu yüzden uluslararası karşılaştırma 6 hane üzerinden yapılır. Rapor, senin ürününü de içeren daha geniş bir ürün grubunu gösterir.</p></details>
-        <details><summary>Üst sıradaki ülkeye kesin satış yapabilir miyim?</summary><p>Hayır. Rapor, talep ve pazar yapısı verilerinin neyi gösterdiğini söyler; satışı garanti etmez. Sertifika şartları, dağıtım kanalları ve alıcı ilişkileri gibi verinin göstermediği etkenleri ayrıca araştırman gerekir.</p></details>
+        <details><summary>Üst sıradaki ülkeye kesin satış yapabilir miyim?</summary><p>Hayır. Rapor, talep ve pazar yapısı verilerinin neyi gösterdiğini söyler; satışı garanti etmez. İlk adım için her pazarda Ticaret Müşavirliği iletişimini, ithalatçı listesi talebini, desteklenen fuarları ve olası sertifika şartlarının kontrol listesini de verir. Şart listesi genel bilgilendirmedir; sevkiyattan önce ilgili kurumdan doğrulaman gerekir.</p></details>
       </div>
     </section>
+  </div>
+
+  <!-- Paketler -->
+  <div class="pricing-view wrap">
+    <div class="pricing-head">
+      <p class="eyebrow">Paketler</p>
+      <h1>İhtiyacın kadar öde.</h1>
+      <p class="lead">Ücretsiz planla her ürünün en iyi pazarını gör. Tüm sıralama ve ülke detayları için tek rapor al ya da sınırsız kullanım için Pro'ya geç.</p>
+    </div>
+    <div class="plans">
+      <div class="panel plan-card">
+        <h2>Ücretsiz</h2>
+        <div class="price"><b>0 TL</b></div>
+        <p class="for">Ürününü keşfetmek için.</p>
+        <ul>
+          <li>Sınırsız ürün araması</li>
+          <li>Her raporda en iyi pazar ve detayı</li>
+          <li>Toplam pazar ve Türkiye'nin payı</li>
+          <li class="no">Tüm pazarların sıralaması</li>
+          <li class="no">PDF çıktısı</li>
+        </ul>
+        <a class="ghost wide" href="/" data-route>Ürün ara</a>
+      </div>
+      <div class="panel plan-card">
+        <h2>Tek rapor</h2>
+        <div class="price"><b><span data-price="single"></span> TL</b><span>tek seferlik</span></div>
+        <p class="for">Tek bir ürün için karar verecekler için.</p>
+        <ul>
+          <li>Seçtiğin ürünün tam raporu</li>
+          <li>Tüm pazarların sıralaması</li>
+          <li>Her ülkenin detayı: eğilim, rakipler, fiyat</li>
+          <li>Sıralama ve PDF çıktısı</li>
+          <li class="no">Diğer ürünlerin tam raporu</li>
+        </ul>
+        <button type="button" class="ghost wide" data-buy="single">Rapor seç</button>
+      </div>
+      <div class="panel plan-card featured">
+        <span class="ribbon">En çok tercih edilen</span>
+        <h2>Pro</h2>
+        <div class="price"><b><span data-price="pro"></span> TL</b><span>aylık</span></div>
+        <p class="for">Birden fazla ürünü ya da pazarı takip edenler için.</p>
+        <ul>
+          <li>Tüm ürünlerde sınırsız tam rapor</li>
+          <li>Tüm pazarların sıralaması ve ülke detayları</li>
+          <li>Sıralama ve PDF çıktısı</li>
+          <li>İstediğin zaman iptal</li>
+          <li class="soon-item">Yakında: takip listesi ve talep uyarıları</li>
+        </ul>
+        <button type="button" class="go wide" data-buy="pro" id="buy-pro">Pro'ya geç</button>
+      </div>
+    </div>
+    <p class="demo-note">Bu bir demo sürümdür: ödeme alınmaz, kart bilgisi istenmez. Açılan paketler yalnızca bu tarayıcıda geçerlidir. <button type="button" class="link" id="reset-access">Demo erişimini sıfırla</button></p>
   </div>
 
   <!-- Rapor -->
@@ -162,6 +227,33 @@
 </footer>
 <div id="tip" role="tooltip"></div>
 
+<dialog id="checkout" aria-labelledby="co-title">
+  <div class="co" id="co-form">
+    <div class="co-demo">Demo ödeme: gerçek kart bilgisi istenmez, para çekilmez.</div>
+    <h2 id="co-title"></h2>
+    <p class="muted" id="co-desc"></p>
+    <div class="co-card" aria-label="Örnek kart">
+      <label>Kart numarası<input value="4242 4242 4242 4242" readonly tabindex="-1"></label>
+      <label>Son kullanma<input value="12 / 30" readonly tabindex="-1"></label>
+      <label>Güvenlik kodu<input value="123" readonly tabindex="-1"></label>
+    </div>
+    <div class="co-total"><span>Toplam</span><b id="co-total"></b></div>
+    <div class="co-actions">
+      <button type="button" class="ghost" id="co-cancel">Vazgeç</button>
+      <button type="button" class="go" id="co-pay"></button>
+    </div>
+  </div>
+  <div class="co co-done" id="co-done" hidden>
+    <div class="check" aria-hidden="true">✓</div>
+    <h2>Ödeme tamamlandı</h2>
+    <p class="muted" id="co-done-text"></p>
+    <button type="button" class="go wide" id="co-close">Devam et</button>
+  </div>
+</dialog>
+
+<div id="print-doc" aria-hidden="true"></div>
+
+<script src="/static/belge.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
