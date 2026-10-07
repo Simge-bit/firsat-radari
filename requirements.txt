@@ -1,0 +1,2 @@
+# Site yalnızca Python standart kütüphanesini kullanır.
+# tools/gtip_sozluk.py için: python-calamine

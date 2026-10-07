@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: firsat-radari
+    runtime: python
+    plan: free
+    buildCommand: "true"
+    startCommand: python server.py
+    envVars:
+      - key: COMTRADE_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.12.6

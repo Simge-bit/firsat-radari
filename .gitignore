@@ -1,0 +1,4 @@
+.env
+cache/
+cikti/
+__pycache__/
