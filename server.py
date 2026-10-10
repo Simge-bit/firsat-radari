@@ -237,7 +237,11 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path == "/api/hesap":
             # Tarayıcıdaki belirteci tazeler: başka cihazda alınan paket ya da biten üyelik buraya da yansır.
             grant = read_token(urllib.parse.parse_qs(url.query).get("t", [""])[0])
-            self._json(200, session(grant["email"]) if grant["email"] else {"token": "", **read_token("")})
+            try:
+                self._json(200, session(grant["email"]) if grant["email"] else {"token": "", **read_token("")})
+            except RuntimeError:              # üye veritabanına ulaşılamadı: tarayıcı eldeki oturumla devam eder
+                traceback.print_exc()
+                self._json(503, {"error": "Hesap bilgilerine şu an ulaşılamıyor."})
         elif url.path == "/api/doviz":
             try:
                 self._json(200, doviz.rates())
@@ -300,6 +304,13 @@ class Handler(BaseHTTPRequestHandler):
         self._redirect(f"/giris?k={uyelik.login_code(order['email'])}&d={urllib.parse.quote(target, safe='')}")
 
     def do_POST(self):
+        try:
+            self._post()
+        except RuntimeError:                  # üye veritabanına ulaşılamadı
+            traceback.print_exc()
+            self._json(503, {"error": "Hesap bilgilerine şu an ulaşılamıyor. Biraz sonra tekrar dene."})
+
+    def _post(self):
         path = urllib.parse.urlparse(self.path).path
         try:
             size = int(self.headers.get("Content-Length") or 0)

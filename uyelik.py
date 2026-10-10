@@ -1,8 +1,8 @@
 """Üyeler, satın almalar ve e-postayla giriş.
 
 Hesap bir e-posta adresidir; şifre yoktur. Giriş için adrese tek kullanımlık bir bağlantı gönderilir.
-Veriler SQLite dosyasında durur (IHRACBUL_DB ortam değişkeni ya da proje kökünde veri/uyeler.db).
-Barındırma ortamında bu dosyanın kalıcı bir diskte olması gerekir; yoksa sunucu yeniden başladığında hesaplar silinir.
+Veriler TURSO_URL ve TURSO_TOKEN verilmişse Turso'daki kalıcı veritabanında, verilmemişse yerel SQLite dosyasında durur
+(IHRACBUL_DB ortam değişkeni ya da proje kökünde veri/uyeler.db). Ücretsiz barındırmada yerel dosya her yeniden başlatmada silinir.
 """
 
 import hashlib
@@ -15,6 +15,8 @@ import smtplib
 import sqlite3
 import ssl
 import time
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -23,24 +25,111 @@ LOGIN_MINUTES = 20
 EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}")
 
 
+SCHEMA = [
+    """CREATE TABLE IF NOT EXISTS uyeler (eposta TEXT PRIMARY KEY, pro_bitis REAL NOT NULL DEFAULT 0, raporlar TEXT NOT NULL DEFAULT '[]', kayit REAL NOT NULL,
+                                       ad TEXT, firma TEXT, sifre TEXT)""",
+    "CREATE TABLE IF NOT EXISTS giris_kodlari (kod TEXT PRIMARY KEY, eposta TEXT NOT NULL, bitis REAL NOT NULL, kullanildi INTEGER NOT NULL DEFAULT 0)",
+    """CREATE TABLE IF NOT EXISTS satin_almalar (id INTEGER PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
+                                              zaman REAL NOT NULL, saglayici TEXT NOT NULL, referans TEXT)""",
+    """CREATE TABLE IF NOT EXISTS siparisler (id TEXT PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
+                                           zaman REAL NOT NULL, belirtec TEXT, odendi INTEGER NOT NULL DEFAULT 0)""",
+]
+_ready = set()                              # tabloları kurulmuş veritabanları
+
+
+class _Rows:
+    """Uzak sorgunun sonucu; sqlite3 imlecinin bu dosyada kullanılan kısmı kadar davranır."""
+
+    def __init__(self, rows, rowcount):
+        self.rows, self.rowcount = rows, rowcount
+
+    def fetchone(self):
+        return self.rows[0] if self.rows else None
+
+    def __iter__(self):
+        return iter(self.rows)
+
+
+class _Remote:
+    """Turso'daki kalıcı veritabanı (SQLite uyumlu), HTTP üzerinden. Her komut ayrı bir istektir ve hemen kalıcıdır.
+
+    Ücretsiz barındırmada sunucunun diski her yeniden başlatmada silindiği için üyeler burada tutulur.
+    """
+
+    def __init__(self, url, token):
+        self.url, self.token = url.replace("libsql://", "https://").rstrip("/") + "/v2/pipeline", token
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *error):
+        return False
+
+    @staticmethod
+    def _arg(value):
+        if value is None:
+            return {"type": "null"}
+        if isinstance(value, bool) or isinstance(value, int):
+            return {"type": "integer", "value": str(int(value))}
+        if isinstance(value, float):
+            return {"type": "float", "value": value}
+        return {"type": "text", "value": str(value)}
+
+    @staticmethod
+    def _value(cell):
+        kind = cell.get("type")
+        return None if kind == "null" else int(cell["value"]) if kind == "integer" else float(cell["value"]) if kind == "float" else cell.get("value")
+
+    def _send(self, statements):
+        body = {"requests": [{"type": "execute", "stmt": {"sql": sql, "args": [self._arg(value) for value in params]}} for sql, params in statements]
+                + [{"type": "close"}]}
+        request = urllib.request.Request(self.url, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + self.token, "Content-Type": "application/json"})
+        try:
+            reply = json.loads(urllib.request.urlopen(request, timeout=20).read().decode("utf-8"))
+        except (urllib.error.URLError, TimeoutError, ValueError) as error:
+            raise RuntimeError(f"Üye veritabanına ulaşılamadı: {error}") from error
+        results = []
+        for item in reply["results"][:len(statements)]:
+            if item.get("type") != "ok":
+                raise RuntimeError("Üye veritabanı hatası: " + str((item.get("error") or {}).get("message")))
+            result = item["response"]["result"]
+            results.append(_Rows([tuple(self._value(cell) for cell in row) for row in result["rows"]], result.get("affected_row_count", 0)))
+        return results
+
+    def execute(self, sql, params=()):
+        return self._send([(sql, tuple(params))])[0]
+
+    def prepare(self):
+        self._send([(sql, ()) for sql in SCHEMA])
+
+
 def _db():
+    """Üye veritabanı bağlantısı: TURSO_URL ve TURSO_TOKEN verilmişse kalıcı uzak veritabanı, yoksa yerel SQLite dosyası."""
+    if os.environ.get("TURSO_URL") and os.environ.get("TURSO_TOKEN"):
+        remote = _Remote(os.environ["TURSO_URL"], os.environ["TURSO_TOKEN"])
+        if remote.url not in _ready:
+            remote.prepare()
+            _ready.add(remote.url)
+        return remote
     path = Path(os.environ.get("IHRACBUL_DB") or ROOT / "veri" / "uyeler.db")
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path, timeout=10)
-    connection.executescript("""
-        CREATE TABLE IF NOT EXISTS uyeler (eposta TEXT PRIMARY KEY, pro_bitis REAL NOT NULL DEFAULT 0, raporlar TEXT NOT NULL DEFAULT '[]', kayit REAL NOT NULL);
-        CREATE TABLE IF NOT EXISTS giris_kodlari (kod TEXT PRIMARY KEY, eposta TEXT NOT NULL, bitis REAL NOT NULL, kullanildi INTEGER NOT NULL DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS satin_almalar (id INTEGER PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
-                                                 zaman REAL NOT NULL, saglayici TEXT NOT NULL, referans TEXT);
-        CREATE TABLE IF NOT EXISTS siparisler (id TEXT PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
-                                              zaman REAL NOT NULL, belirtec TEXT, odendi INTEGER NOT NULL DEFAULT 0);
-    """)
-    # Sonradan eklenen sütunlar: eski veritabanı dosyası açılışta tamamlanır.
-    columns = {row[1] for row in connection.execute("PRAGMA table_info(uyeler)")}
-    for name in ("ad", "firma", "sifre"):
-        if name not in columns:
-            connection.execute(f"ALTER TABLE uyeler ADD COLUMN {name} TEXT")
+    if str(path) not in _ready:
+        for statement in SCHEMA:
+            connection.execute(statement)
+        # Sonradan eklenen sütunlar: eski veritabanı dosyası açılışta tamamlanır.
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(uyeler)")}
+        for name in ("ad", "firma", "sifre"):
+            if name not in columns:
+                connection.execute(f"ALTER TABLE uyeler ADD COLUMN {name} TEXT")
+        connection.commit()
+        _ready.add(str(path))
     return connection
+
+
+def persistent():
+    """Üyeler kalıcı bir veritabanında mı? Değilse sunucu yeniden başladığında silinirler."""
+    return bool(os.environ.get("TURSO_URL") and os.environ.get("TURSO_TOKEN"))
 
 
 def normalize(email):
@@ -78,9 +167,10 @@ def register(email, name, company, password):
     kanıtlayıp şifresini hesabından belirler. Aksi halde başkası o adrese şifre koyup paketi ele geçirebilirdi.
     """
     with _db() as db:
-        if db.execute("SELECT 1 FROM uyeler WHERE eposta = ?", (email,)).fetchone():
-            return "var"
-        db.execute("INSERT INTO uyeler (eposta, kayit, ad, firma, sifre) VALUES (?, ?, ?, ?, ?)", (email, time.time(), name, company, _hash(password)))
+        added = db.execute("INSERT OR IGNORE INTO uyeler (eposta, kayit, ad, firma, sifre) VALUES (?, ?, ?, ?, ?)",
+                           (email, time.time(), name, company, _hash(password))).rowcount
+    if not added:
+        return "var"
     return "tamam"
 
 
@@ -174,10 +264,10 @@ def login_code(email):
 def redeem(code):
     """Giriş kodunu kullanır: geçerliyse e-postayı döner ve kodu bir daha kullanılmaz yapar; değilse None."""
     with _db() as db:
-        row = db.execute("SELECT eposta FROM giris_kodlari WHERE kod = ? AND bitis > ? AND kullanildi = 0", (code or "", time.time())).fetchone()
-        if not row:
-            return None
-        db.execute("UPDATE giris_kodlari SET kullanildi = 1 WHERE kod = ?", (code,))
+        row = db.execute("UPDATE giris_kodlari SET kullanildi = 1 WHERE kod = ? AND bitis > ? AND kullanildi = 0 RETURNING eposta",
+                         (code or "", time.time())).fetchone()
+    if not row:
+        return None
     return row[0]
 
 
