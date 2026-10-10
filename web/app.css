@@ -626,7 +626,7 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 @font-face { font-family: Jost; src: url(/static/jost.ttf); font-weight: 100 900; font-display: swap; }
 .legal.team { max-width: none; position: relative; overflow: hidden; height: min(720px, calc(100vh - 150px)); min-height: 600px;
   border: 1px solid var(--line); border-left: 6px solid var(--brand); margin-bottom: 72px; }
-.team-photo { position: absolute; right: 0; top: 0; height: 100%; width: 62%; background: url(/static/ekip-simge.jpg?v=5) center 30% / cover; }
+.team-photo { position: absolute; right: 0; top: 0; height: 100%; width: 62%; background: url(/static/ekip-simge.jpg?v=6) center 22% / cover; }
 .team-photo::after { content: ""; position: absolute; inset: 0 0 0 -1px;
   background: linear-gradient(90deg, var(--bg) 0%, rgba(11, 12, 15, .55) 14%, rgba(11, 12, 15, 0) 42%), linear-gradient(0deg, var(--bg) 2%, rgba(11, 12, 15, 0) 34%); }
 .team-text { position: absolute; left: 66px; top: 15%; }
