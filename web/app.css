@@ -677,6 +677,30 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .team-facts dt { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brand-hover); }
 .team-facts dd { margin: 8px 0 0; color: var(--muted); line-height: 1.55; }
 
+/* Ana sayfa: raporda neler var */
+.inside { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 32px 72px; align-items: center; }
+.inside h2 { font: 500 clamp(32px, 3.6vw, 44px)/1.05 Jost, var(--sans); letter-spacing: -.01em; margin: 10px 0 14px; }
+.kicker { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--brand-hover); }
+.contents { list-style: none; margin: 28px 0 0; padding: 0; }
+.contents li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 0 14px; padding: 14px 0; border-top: 1px solid var(--line); align-items: start; }
+.contents i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); margin-top: 8px; }
+.contents h3 { font-size: 15.5px; margin: 0 0 2px; }
+.contents p { margin: 0; color: var(--muted); }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-left: 6px solid var(--brand); padding: 30px 32px; box-shadow: 0 40px 100px var(--shadow); }
+.sheet small { display: block; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+.sheet-top { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+.sheet-top b { display: block; font: 500 34px/1 Jost, var(--sans); margin-top: 8px; }
+.sheet-score { text-align: right; }
+.sheet-score b { font: 300 64px/.85 Jost, var(--sans); margin: 0 0 6px; }
+.sheet-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.sheet-facts b { display: block; font-size: 20px; margin-top: 4px; }
+.sheet-bars { margin-top: 8px; }
+.sheet-bars div { display: grid; grid-template-columns: 84px minmax(0, 1fr) 52px; gap: 12px; align-items: center; font-size: 13px; padding: 5px 0; }
+.sheet-bars i { display: block; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.sheet-bars i b { display: block; height: 100%; background: var(--bar); }
+.sheet-bars .tr i b { background: var(--brand); }
+.sheet-bars span:last-child { text-align: right; color: var(--muted); }
+
 /* Giriş ve kayıt sayfası */
 .legal.auth { max-width: 1040px; margin: 0 auto 72px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border: 1px solid var(--line); border-left: 6px solid var(--brand); }
 .auth-side { --text: #e8eaed; --muted: #a4a9b3; background: #0b0c0f radial-gradient(520px 320px at 100% 0%, rgba(227, 10, 23, .28), transparent 65%); color: var(--text); padding: 56px 48px; }
@@ -706,6 +730,9 @@ body[data-odeme="gercek"] .co-demo, body[data-odeme="gercek"] .co-card { display
 
 @media (max-width: 720px) {
   .legal.team-about { grid-template-columns: 1fr; padding: 48px 0 0; }
+  .inside { grid-template-columns: 1fr; }
+  .inside .sheet { order: 2; padding: 22px 20px; }
+  .sheet-facts b { font-size: 16px; }
   .legal.auth { grid-template-columns: 1fr; }
   .auth-side { padding: 32px 22px; }
   .auth-side ul { display: none; }
