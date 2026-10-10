@@ -201,7 +201,7 @@ function renderLockedDetail(row) {
       <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
       <h3>Bu pazarın detayı tam raporda</h3>
       <ul>${LOCKED_DETAIL.map((item) => `<li>${item}</li>`).join("")}</ul>
-      ${SOON ? '<button type="button" class="go wide" data-buy="single">Tam rapor yakında, haber ver</button>'
+      ${SOON ? '<button type="button" class="go wide" data-buy="single">Ücretsiz üye ol, tam raporu aç</button>'
         : `<button type="button" class="go wide" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
       <button type="button" class="ghost wide" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>`}
     </div>`;
@@ -266,10 +266,10 @@ function renderLockedTable() {
     ${hidden > 0 ? `<div class="paywall"><div class="paywall-card">
       <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
       <h3>${hidden} pazar daha var</h3>
-      <p>${SOON ? "Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı ve ülke detaylarını gösteren tam raporlar yakında açılacak."
+      <p>${SOON ? "Lansmana özel olarak üyeler günde 1 ürünün tam raporunu ücretsiz açabilir ve PDF olarak indirebilir. Hesap açmak ücretsizdir ve kart bilgisi istenmez."
         : "Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı, ülke detaylarını ve PDF belgesini görmek için raporu açman gerekir."}</p>
       <div class="paywall-btns">
-        ${SOON ? '<button type="button" class="go" data-buy="single">Açılınca haber ver</button>'
+        ${SOON ? '<button type="button" class="go" data-buy="single">Ücretsiz üye ol</button>'
           : `<button type="button" class="go" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
         <button type="button" class="ghost" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>`}
       </div>
@@ -520,11 +520,11 @@ login.addEventListener("click", (event) => { if (event.target === login || event
 /* ---------- Giriş ve kayıt sayfası ---------- */
 
 // Üyelik isteyen bir işlemden gelindiyse kayıt ya da girişten sonra o sayfaya dönülür.
-function askToJoin() {
+function askToJoin(message = "PDF indirmek için ücretsiz bir hesap açman yeterli. Hesabın varsa giriş yapabilirsin.") {
   try { sessionStorage.setItem("fr-donus", location.pathname); } catch (error) { /* dönüş adresi tutulamazsa ana sayfaya gidilir */ }
   go("/kayit");
-  $("au-signup-error").textContent = "PDF indirmek için ücretsiz bir hesap açman yeterli. Hesabın varsa giriş yapabilirsin.";
-  $("au-signup-error").hidden = false;
+  $("au-signup-note").textContent = message;
+  $("au-signup-note").hidden = false;
 }
 
 function returnPath() {
@@ -539,7 +539,7 @@ function showAuth(signup) {
   $("au-signup").hidden = !signup;
   $("tab-giris").setAttribute("aria-selected", String(!signup));
   $("tab-kayit").setAttribute("aria-selected", String(signup));
-  $("au-login-error").hidden = $("au-signup-error").hidden = true;
+  $("au-login-error").hidden = $("au-signup-error").hidden = $("au-signup-note").hidden = true;
 }
 
 // Form gönderilir, yanıt oturum olarak kaydedilir ve ana sayfaya dönülür.
@@ -778,6 +778,8 @@ $("sn-email").addEventListener("keydown", (event) => { if (event.key === "Enter"
 soon.addEventListener("click", (event) => { if (event.target === soon || event.target.closest("[data-close]")) soon.close(); });
 
 function openCheckout(kind) {
+  // Lansman döneminde kilitli raporu açmanın yolu ücretsiz üyeliktir; paketler sayfasındaki düğmeler haber listesini açar.
+  if (SOON && current && current.kilitli && !access.email) return askToJoin("Tam raporu görmek ve PDF indirmek için ücretsiz bir hesap açman yeterli. Hesabın varsa giriş yapabilirsin.");
   if (SOON) return openSoon(kind);
   // Tek rapor bir ürüne bağlıdır: açık bir rapor yoksa önce ürün seçtirilir.
   if (kind === "single" && !current) {
@@ -1220,7 +1222,12 @@ if (SOON) {
   document.querySelector(".plan-card .ribbon").textContent = "Yakında";
   $("demo-note").hidden = true;
   $("soon-note").hidden = false;
-  document.querySelector(".pricing-head .lead").textContent = "Ücretsiz planda her ürünün en iyi pazarını görebilirsin. Bütün sıralamayı ve ülke detaylarını gösteren tek rapor ve Pro paket yakında açılacak.";
+  $("free-list").innerHTML = "<li>Günde 1 ürün raporu</li><li>Üyelere tam rapor: bütün pazarlar ve ülke detayları</li><li>Üyelere PDF çıktısı</li><li>Hesap açmak ücretsiz, kart istenmez</li>";
+  $("free-for").textContent = "Lansmana özel: üyelere günde 1 tam rapor.";
+  $("free-go").textContent = "Ücretsiz üye ol";
+  $("free-go").setAttribute("href", "/kayit");
+  $("auth-perks").innerHTML = "<li>Hesap açmak ücretsizdir.</li><li>Kart bilgisi istenmez.</li><li>Üyeler günde 1 ürünün tam raporunu görür ve PDF indirir.</li>";
+  document.querySelector(".pricing-head .lead").textContent = "Lansmana özel olarak üyeler günde 1 ürünün tam raporunu ücretsiz açabilir. Daha fazla ürün için tek rapor ve Pro paket yakında açılacak.";
   $("close-paid").hidden = true;
   $("close-soon").hidden = false;
 }

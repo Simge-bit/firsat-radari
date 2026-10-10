@@ -198,7 +198,7 @@
       <div class="closing">
         <h2>Ürününün en iyi pazarını şimdi öğren.</h2>
         <p id="close-paid">Ücretsiz planda günde 1 ürün arayabilirsin. Tam rapor <span data-price="single"></span> TL, bütün ürünler için Pro paket ayda <span id="close-price"></span> TL'den başlar.</p>
-        <p id="close-soon" hidden>Ücretsiz planda günde 1 ürün arayabilirsin. Tam raporlar ve Pro paket yakında açılacak.</p>
+        <p id="close-soon" hidden>Lansmana özel olarak üyeler günde 1 ürünün tam raporunu ücretsiz açabilir ve PDF olarak indirebilir.</p>
         <div class="closing-btns"><button type="button" class="go" id="close-search">Ürün ara</button><a class="ghost" href="/paketler" data-route>Paketleri gör</a></div>
       </div>
     </section>
@@ -216,8 +216,8 @@
       <div class="panel plan-card">
         <h2>Ücretsiz</h2>
         <div class="price"><b>0 TL</b></div>
-        <p class="for">Siteyi denemek isteyenler için.</p>
-        <ul>
+        <p class="for" id="free-for">Siteyi denemek isteyenler için.</p>
+        <ul id="free-list">
           <li>Günde 1 ürün raporu</li>
           <li>Her raporda en iyi pazar ve skoru</li>
           <li>Toplam pazar ve Türkiye'nin payı</li>
@@ -225,7 +225,7 @@
           <li class="no">Tüm pazarların sıralaması</li>
           <li class="no">PDF çıktısı</li>
         </ul>
-        <a class="ghost wide" href="/" data-route>Ürün ara</a>
+        <a class="ghost wide" href="/" data-route id="free-go">Ürün ara</a>
       </div>
       <div class="panel plan-card">
         <h2>Tek rapor</h2>
@@ -261,7 +261,7 @@
       </div>
     </div>
     <p class="demo-note" id="demo-note">Site şu an deneme aşamasındadır. Ödeme alınmaz ve kart bilgisi istenmez. Açılan paketler yazdığın e-posta adresine tanımlanır. <button type="button" class="link" id="reset-access">Demo paketlerimi sil ve çıkış yap</button></p>
-    <p class="demo-note" id="soon-note" hidden>Tek rapor ve Pro paket yakında satışa açılacak. Şu an herkes ücretsiz planı kullanabilir. Paketler açıldığında haber almak için ilgilendiğin paketin altındaki düğmeye basabilirsin.</p>
+    <p class="demo-note" id="soon-note" hidden>Lansmana özel olarak üyeler günde 1 ürünün tam raporunu ücretsiz açabilir. Tek rapor ve Pro paket yakında satışa açılacak. Paketler açıldığında haber almak için ilgilendiğin paketin altındaki düğmeye basabilirsin.</p>
   </div>
 
   <!-- Rapor -->
@@ -303,7 +303,7 @@
         <p class="team-role">Hesap</p>
         <h1>Raporların tek hesapta dursun.</h1>
         <p>Hesap açtığında aldığın paketler adına kaydedilir. Bilgisayarından, telefonundan ya da başka bir cihazdan giriş yaparak raporlarına ulaşabilirsin.</p>
-        <ul>
+        <ul id="auth-perks">
           <li>Hesap açmak ücretsizdir.</li>
           <li>Kart bilgisi istenmez.</li>
           <li>Ücretsiz planda günde 1 ürün arayabilirsin.</li>
@@ -329,6 +329,7 @@
           <label class="co-field" for="su-pass">Şifren<input id="su-pass" type="password" autocomplete="new-password" minlength="8" required></label>
           <p class="co-hint">Şifren en az 8 karakter olmalı.</p>
           <label class="co-check"><input type="checkbox" id="su-consent"><span><a href="/kosullar" target="_blank">Kullanım koşullarını</a> ve <a href="/gizlilik" target="_blank">gizlilik metnini</a> okudum, kabul ediyorum.</span></label>
+          <p class="co-ok" id="au-signup-note" role="status" hidden></p>
           <p class="co-error" id="au-signup-error" role="alert" hidden></p>
           <button class="go wide" id="au-signup-go">Hesap aç</button>
           <p class="auth-note">Hesabın varsa <a href="/giris" data-route>giriş yapabilirsin</a>.</p>

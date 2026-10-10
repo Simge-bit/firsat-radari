@@ -249,6 +249,16 @@ class AcikOrnek(unittest.TestCase):
                 self.assertEqual(response.status, 200, path)
                 self.assertGreater(len(response.read()), 50, path)
 
+    def test_lansmanda_uye_tam_raporu_gorur(self):
+        import urllib.parse
+        import urllib.request
+        token = server.session(uyelik.normalize("lansman@firma.com") or "")["token"]
+        full = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{self.site.server_port}/api/rapor?gtip=570242&t={urllib.parse.quote(token)}").read())
+        self.assertNotIn("kilitli", full)
+        self.assertGreater(len(full["rows"]), 5)
+        forged = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{self.site.server_port}/api/rapor?gtip=570242&t=sahte.belirtec").read())
+        self.assertTrue(forged["kilitli"])
+
     def test_acik_ornekler_sayfayla_ayni(self):
         script = (server.WEB / "app.js").read_text(encoding="utf-8")
         for code in server.OPEN_SAMPLES:

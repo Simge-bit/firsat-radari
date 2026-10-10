@@ -350,9 +350,11 @@ class Handler(BaseHTTPRequestHandler):
             grant = read_token(query.get("t", [""])[0])
             plan = "pro" if grant["pro"] else "free"
             try:
-                # Sınır üyede hesaba, ziyaretçide internet adresine göre tutulur.
-                body = report(gtip[:6], grant["email"] or self._visitor(), plan, gtip[:6] in grant["reports"])
-                opened = grant["pro"] or gtip[:6] in grant["reports"] or gtip[:6] in OPEN_SAMPLES
+                # Günlük sınır Pro üyede hesaba, diğerlerinde internet adresine göre tutulur; böylece yeni hesap açmak sınırı sıfırlamaz.
+                body = report(gtip[:6], grant["email"] if grant["pro"] else self._visitor(), plan, gtip[:6] in grant["reports"])
+                # Lansman dönemi: ücretli paketler henüz satışta değilken üyeler günlük ürününün tam raporunu görür.
+                launch = SOON and DEMO and bool(grant["email"])
+                opened = grant["pro"] or gtip[:6] in grant["reports"] or gtip[:6] in OPEN_SAMPLES or launch
                 self._send(200, "application/json; charset=utf-8", body if opened else locked(body))
             except LimitReached:
                 if plan == "pro":
