@@ -624,8 +624,8 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 
 /* Ekip sayfası */
 .team .lead { color: var(--muted); font-size: 17px; line-height: 1.6; margin: 14px 0 0; }
-.member { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 8px 40px; margin: 44px 0 12px; padding: 32px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.member-head img { display: block; width: 100%; max-width: 240px; height: auto; border-radius: 10px; margin-bottom: 18px; }
+.member { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 8px 40px; margin: 44px 0 12px; padding: 32px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.member-head img { display: block; width: 100%; max-width: 340px; height: auto; border-radius: 10px; margin-bottom: 18px; }
 .member-head h2 { font-size: 22px; margin: 0; }
 .member-head p { margin: 6px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-hover); }
 .member-body p:first-child { margin-top: 0; }
@@ -644,3 +644,5 @@ body[data-odeme="gercek"] .co-demo, body[data-odeme="gercek"] .co-card { display
 @media (max-width: 720px) {
   .member { grid-template-columns: 1fr; }
 }
+.legal.team { max-width: 880px; }
+.team > h2, .team > ul, .team > p { max-width: 72ch; }
