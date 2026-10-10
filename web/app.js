@@ -495,6 +495,7 @@ $("lg-send").addEventListener("click", async () => {
       : "Deneme sürümünde e-posta gönderilmiyor. Giriş bağlantını aşağıda bulabilirsin.";
     $("lg-demo").hidden = !payload.demo_baglanti;
     if (payload.demo_baglanti) $("lg-demo").href = payload.demo_baglanti;
+    else $("lg-demo").removeAttribute("href");
     $("lg-send").disabled = false;
     showLogin("lg-sent");
   } catch (error) {

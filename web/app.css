@@ -26,6 +26,8 @@
 .theme-toggle .sun, :root[data-theme="light"] .theme-toggle .moon { display: none; }
 :root[data-theme="light"] .theme-toggle .sun { display: block; }
 * { box-sizing: border-box; }
+/* hidden özniteliği her zaman geçerlidir; display tanımlı öğelerde de gizler. */
+[hidden] { display: none !important; }
 html { background: var(--bg); scroll-behavior: smooth; scroll-padding-top: calc(var(--head-h) + 20px); }
 body { margin: 0; color: var(--text); font: 14px/1.55 var(--sans); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
 a { color: inherit; }
