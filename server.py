@@ -52,6 +52,15 @@ def product_title(hs6):
 STATIC_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml",
                 ".png": "image/png", ".jpg": "image/jpeg", ".ttf": "font/ttf", ".json": "application/json; charset=utf-8"}
 _build_lock = threading.Lock()
+# Stil ve betiklerin sürüm etiketi: dosyalar değişince etiket değişir, tarayıcı yenisini indirir; değişmedikçe önbellekten açar.
+ASSETS = ("app.css", "app.js", "belge.js", "yonetim.js")
+VERSION = hashlib.sha256(b"".join((WEB / name).read_bytes() for name in ASSETS)).hexdigest()[:10]
+
+
+def versioned(html):
+    for name in ASSETS:
+        html = html.replace(f'/static/{name}"', f'/static/{name}?v={VERSION}"')
+    return html
 
 
 DAILY_NEW = {"free": 3, "pro": 10}          # ziyaretçi başına günde açılabilen, önbellekte olmayan ürün sayısı
@@ -196,11 +205,11 @@ def report(hs6, visitor, plan):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, status, content_type, body):
+    def _send(self, status, content_type, body, cache="no-cache"):
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Cache-Control", cache)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Referrer-Policy", "same-origin")      # giriş bağlantısındaki kod başka sitelere sızmasın
@@ -220,7 +229,7 @@ class Handler(BaseHTTPRequestHandler):
     def _page(self, status):
         # Paylaşım görseli tam adres ister; alan adı istekten alınır, böylece her adreste doğru çıkar.
         origin = self._origin()
-        html = (WEB / "index.html").read_text(encoding="utf-8").replace('content="/static/og.png"', f'content="{origin}/static/og.png"')
+        html = versioned((WEB / "index.html").read_text(encoding="utf-8")).replace('content="/static/og.png"', f'content="{origin}/static/og.png"')
         if not DEMO:                          # ödeme penceresi gösterim yerine fatura alanlarını gösterir
             html = html.replace("<body", '<body data-odeme="gercek"', 1)
         # Rapor bağlantısı paylaşıldığında önizlemede ürünün adı görünsün.
@@ -252,7 +261,10 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path.startswith("/static/"):
             file = (WEB / url.path[len("/static/"):]).resolve()
             if file.is_file() and WEB in file.parents and file.suffix in STATIC_TYPES:
-                self._send(200, STATIC_TYPES[file.suffix], file.read_bytes())
+                # Sürüm etiketiyle istenen dosya hiç değişmez sayılır; etiketsiz stil ve betik her seferinde sorulur.
+                versioned = "v" in urllib.parse.parse_qs(url.query)
+                cache = "public, max-age=31536000, immutable" if versioned else "no-cache" if file.suffix in (".css", ".js") else "public, max-age=86400"
+                self._send(200, STATIC_TYPES[file.suffix], file.read_bytes(), cache)
             else:
                 self._send(404, "text/plain; charset=utf-8", "Bulunamadı".encode("utf-8"))
         elif url.path == "/api/ornek":
@@ -298,7 +310,7 @@ class Handler(BaseHTTPRequestHandler):
             self._page(200)
         elif url.path == "/yonetim":
             # Panel ayrı bir sayfadır; verisi yalnızca yönetim şifresiyle açılan oturuma gelir.
-            self._send(200, "text/html; charset=utf-8", (WEB / "yonetim.html").read_bytes())
+            self._send(200, "text/html; charset=utf-8", versioned((WEB / "yonetim.html").read_text(encoding="utf-8")).encode("utf-8"))
         elif url.path.startswith("/api/"):
             self._json(404, {"error": "Bulunamadı"})
         else:

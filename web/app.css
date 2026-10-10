@@ -656,7 +656,7 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .pd-all td:last-child, .pd-all th:last-child { padding-left: 12pt; width: 62pt; color: #6b7079; }
 
 /* Ekip sayfası: fotoğraf arka planda, isim üstünde */
-@font-face { font-family: Jost; src: url(/static/jost.ttf); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: Jost; src: url(/static/jost.ttf?v=1); font-weight: 100 900; font-display: swap; }
 .legal.team { --bg: #0b0c0f; --text: #e8eaed; --muted: #8d939e; --line: #262a32; --brand-hover: #ff2633; background: var(--bg); color: var(--text);
   max-width: none; position: relative; overflow: hidden; height: min(720px, calc(100vh - 150px)); min-height: 600px;
   border: 1px solid var(--line); border-left: 6px solid var(--brand); margin-bottom: 72px; }
