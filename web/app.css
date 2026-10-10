@@ -717,6 +717,20 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .closing-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
 .closing-btns .go, .closing-btns .ghost { height: 48px; padding: 0 24px; border-radius: 8px; font-size: 15px; display: inline-flex; align-items: center; text-decoration: none; }
 
+/* Hareket: .reveal öğeleri görünüme girince .in alır */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s cubic-bezier(.2, .7, .2, 1); }
+.reveal.in { opacity: 1; transform: none; }
+.flow li:nth-child(2), .measures li:nth-child(2), .sample-card:nth-child(2), .inside > :nth-child(2), .faq-wrap > :nth-child(2), .about > :nth-child(2) { transition-delay: .12s; }
+.flow li:nth-child(3), .measures li:nth-child(3), .sample-card:nth-child(3) { transition-delay: .24s; }
+.measures li:nth-child(4), .sample-card:nth-child(4) { transition-delay: .36s; }
+.measures li:nth-child(5) { transition-delay: .48s; }
+.measures li:nth-child(6) { transition-delay: .6s; }
+.sample-card.reveal.in { transition: opacity .7s ease, transform .15s, border-color .15s; }
+.sheet.reveal .sheet-bars i b { transform: scaleX(0); transform-origin: left; transition: transform 1s cubic-bezier(.2, .7, .2, 1) .35s; }
+.sheet.reveal.in .sheet-bars i b { transform: none; }
+.flow li.reveal::before { width: 0; transition: width .8s ease .3s; }
+.flow li.reveal.in::before { width: 56px; }
+
 /* Ana sayfa: raporda neler var */
 .inside { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 32px 72px; align-items: center; }
 .inside h2 { font: 500 clamp(32px, 3.6vw, 44px)/1.05 Jost, var(--sans); letter-spacing: -.01em; margin: 10px 0 14px; }

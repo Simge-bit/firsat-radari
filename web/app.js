@@ -978,15 +978,17 @@ function renderTicker() {
 
 // Ana sayfadaki örnek raporlar şeridi: her örnek ürünün birinci pazarı ve skoru.
 function renderSamples() {
-  const loaded = SAMPLES.filter((sample) => sample.rows);
-  $("samples").innerHTML = loaded.map((sample) => {
+  const loaded = SAMPLES.filter((sample) => sample.rows), box = $("samples");
+  // Kartlar yüklendikçe eklenir; eskiler yeniden çizilmez, böylece giriş hareketi baştan oynamaz.
+  loaded.filter((sample) => !box.querySelector(`[data-hs6="${sample.hs6}"]`)).forEach((sample) => {
     const top = sample.rows[0];
-    return `<a class="sample-card" href="/rapor/${sample.hs6}" data-hs6="${sample.hs6}">
+    box.insertAdjacentHTML("beforeend", `<a class="sample-card" href="/rapor/${sample.hs6}" data-hs6="${sample.hs6}">
       <small>${esc(sample.name)}</small><b>${num(top.score, 0)}</b>
       <span class="where">${esc(nameOf(top))}</span>
       <span class="facts">${esc(million(top.imports))} pazar · ${growthCell(top.G_raw)}</span>
-      <span class="open">Raporu aç</span></a>`;
-  }).join("");
+      <span class="open">Raporu aç</span></a>`);
+    watchMotion(box.lastElementChild);
+  });
   $("ornekler").hidden = !loaded.length;
 }
 
@@ -1050,6 +1052,40 @@ $("theme").addEventListener("click", () => {
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem("fr-tema", next); } catch (error) { /* depolama kapalıysa seçim yalnızca bu sayfada geçerli */ }
 });
+
+/* ---------- Ana sayfa hareketleri: bölümler görünürken belirir, rakamlar sayarak gelir ---------- */
+
+// Hareket yalnızca tarayıcı destekliyorsa ve kullanıcı "hareketi azalt" ayarını açmadıysa çalışır;
+// aksi halde her şey baştan görünür durur.
+const MOTION = "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const REVEALED = ".stats, .home .block > .kicker, .home .block > h2, .split-head, .flow li, .inside > *, .measures li, .sources-line, .faq-wrap > *, .about > *, .closing";
+const COUNTED = ".measures b, .sheet-score b, .sample-card b";
+
+function countUp(node) {
+  const target = Number(node.textContent), started = performance.now(), length = 900;
+  if (!Number.isFinite(target) || !target) return;
+  const tick = (now) => {
+    const progress = Math.min(1, (now - started) / length);
+    node.textContent = Math.round(target * (1 - Math.pow(1 - progress, 3)));     // sona doğru yavaşlar
+    if (progress < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+const motionWatcher = MOTION ? new IntersectionObserver((entries) => entries.forEach((entry) => {
+  if (!entry.isIntersecting) return;
+  motionWatcher.unobserve(entry.target);
+  entry.target.classList.add("in");
+  (entry.target.matches(COUNTED) ? [entry.target] : entry.target.querySelectorAll(COUNTED)).forEach(countUp);
+}), { threshold: 0.18 }) : null;
+
+function watchMotion(node) {
+  if (!MOTION) return;
+  node.classList.add("reveal");
+  motionWatcher.observe(node);
+}
+
+if (MOTION) document.querySelectorAll(REVEALED).forEach(watchMotion);
 
 /* ---------- Ana sayfa kapanışı ---------- */
 
