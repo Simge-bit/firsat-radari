@@ -34,10 +34,11 @@ function render(view) {
     ["Üye", members.length, "kayıtlı hesap"],
     ["Pro üye", members.filter((member) => member.pro_bitis).length, "süresi devam eden"],
     ["Gerçek satış", paid.length, money(paid.reduce((sum, item) => sum + item.tutar, 0))],
-    ["Bugünkü veri isteği", state.veri_istegi + " / " + state.veri_siniri, "UN Comtrade günlük sınırı"],
+    ["Haber bekleyen", new Set(view.bekleme.map((item) => item.eposta)).size, "paketler açılınca haber isteyen"],
   ].map(([label, value, note]) => `<div><span>${label}</span><b>${esc(value)}</b><small>${esc(note)}</small></div>`).join("");
   $("state").innerHTML = [
-    [state.odeme === "gercek", state.odeme === "gercek" ? "Ödeme gerçek para alıyor" : "Ödeme deneme modunda, para alınmıyor"],
+    [state.odeme === "gercek", state.odeme === "gercek" ? "Ödeme gerçek para alıyor" : state.odeme === "yakinda" ? "Ücretli paketler kapalı, yakında olarak görünüyor" : "Ödeme deneme modunda, para alınmıyor"],
+    [state.veri_istegi < state.veri_siniri, "Bugünkü veri isteği " + state.veri_istegi + " / " + state.veri_siniri],
     [state.kalici, state.kalici ? "Üyeler kalıcı veritabanında" : "Üyeler kalıcı değil, sunucu yeniden başlayınca silinir"],
     [state.eposta, state.eposta ? "Giriş e-postaları gönderiliyor" : "Giriş e-postaları gönderilemiyor"],
   ].map(([good, text]) => `<span class="${good ? "ok" : "bad"}">${text}</span>`).join("");
@@ -53,6 +54,10 @@ function render(view) {
         ${member.pro_bitis ? '<button type="button" data-islem="pro-bitir">Pro\'yu bitir</button>' : ""}
         <button type="button" class="danger" data-islem="sil">Sil</button></div></td></tr>`).join("")
     : '<tr><td colspan="4" class="adm-empty">Henüz kayıtlı üye yok.</td></tr>';
+
+  $("waiting").innerHTML = view.bekleme.length ? view.bekleme.map((item) => `<tr>
+      <td>${moment(item.zaman)}</td><td>${esc(item.eposta)}</td><td>${KINDS[item.tur] || esc(item.tur)}</td></tr>`).join("")
+    : '<tr><td colspan="3" class="adm-empty">Henüz haber isteyen yok.</td></tr>';
 
   $("purchases").innerHTML = purchases.length ? purchases.map((item) => `<tr>
       <td>${moment(item.zaman)}</td><td>${esc(item.eposta)}</td>

@@ -828,3 +828,6 @@ body[data-odeme="gercek"] .co-demo, body[data-odeme="gercek"] .co-card { display
 
 /* hidden özniteliği, grid tanımlı sayfa bölümlerinde de geçerli olsun */
 .legal[hidden], .auth-form[hidden] { display: none; }
+
+/* Ücretli paketler henüz satışta değilken kartlar soluk görünür */
+.plan-card.soon .price, .plan-card.soon ul, .plan-card.soon .for, .plan-card.soon .billing, .plan-card.soon .bill-note { opacity: .55; }

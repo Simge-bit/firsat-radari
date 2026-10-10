@@ -10,6 +10,8 @@ const VISIBLE_ROWS = 20;
 const LOCKED_ROWS = 9;                    // kilitli önizlemede gösterilen boş satır sayısı
 const PRICES = { single: 490, pro: 999, yearly: 9000 };   // TL; tek rapor tek seferlik, Pro aylık, Pro yıllık (tek ödeme)
 PRICES.perMonth = PRICES.yearly / 12;                    // yıllık planın aylık karşılığı
+// Ücretli paketler henüz satışta değilse düğmeler satın alma yerine haber listesini açar.
+const SOON = document.body.dataset.odeme === "yakinda";
 const TITLE = document.title;
 const LOCK_ICON = '<svg class="lock-ico" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg>';
 
@@ -90,7 +92,7 @@ function renderPlan() {
   $("plan").textContent = access.pro ? "Pro" : "Ücretsiz plan";
   $("plan").classList.toggle("pro", access.pro);
   const buyPro = $("buy-pro");
-  buyPro.textContent = access.pro ? "Aktif plan" : "Satın al";
+  buyPro.textContent = access.pro ? "Aktif plan" : SOON ? "Yakında, haber ver" : "Satın al";
   buyPro.disabled = access.pro;
   document.querySelectorAll("[data-price]").forEach((node) => { node.textContent = num(PRICES[node.dataset.price], 0); });
   renderBilling();
@@ -199,8 +201,9 @@ function renderLockedDetail(row) {
       <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
       <h3>Bu pazarın detayı tam raporda</h3>
       <ul>${LOCKED_DETAIL.map((item) => `<li>${item}</li>`).join("")}</ul>
-      <button type="button" class="go wide" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
-      <button type="button" class="ghost wide" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>
+      ${SOON ? '<button type="button" class="go wide" data-buy="single">Tam rapor yakında, haber ver</button>'
+        : `<button type="button" class="go wide" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
+      <button type="button" class="ghost wide" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>`}
     </div>`;
 }
 
@@ -263,10 +266,12 @@ function renderLockedTable() {
     ${hidden > 0 ? `<div class="paywall"><div class="paywall-card">
       <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
       <h3>${hidden} pazar daha var</h3>
-      <p>Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı, ülke detaylarını ve PDF belgesini görmek için raporu açman gerekir.</p>
+      <p>${SOON ? "Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı ve ülke detaylarını gösteren tam raporlar yakında açılacak."
+        : "Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı, ülke detaylarını ve PDF belgesini görmek için raporu açman gerekir."}</p>
       <div class="paywall-btns">
-        <button type="button" class="go" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
-        <button type="button" class="ghost" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>
+        ${SOON ? '<button type="button" class="go" data-buy="single">Açılınca haber ver</button>'
+          : `<button type="button" class="go" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
+        <button type="button" class="ghost" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>`}
       </div>
       <a class="compare" href="/paketler" data-route>Paketleri karşılaştır</a>
     </div></div>` : ""}</div>`;
@@ -514,6 +519,20 @@ login.addEventListener("click", (event) => { if (event.target === login || event
 
 /* ---------- Giriş ve kayıt sayfası ---------- */
 
+// Üyelik isteyen bir işlemden gelindiyse kayıt ya da girişten sonra o sayfaya dönülür.
+function askToJoin() {
+  try { sessionStorage.setItem("fr-donus", location.pathname); } catch (error) { /* dönüş adresi tutulamazsa ana sayfaya gidilir */ }
+  go("/kayit");
+  $("au-signup-error").textContent = "PDF indirmek için ücretsiz bir hesap açman yeterli. Hesabın varsa giriş yapabilirsin.";
+  $("au-signup-error").hidden = false;
+}
+
+function returnPath() {
+  let path = "/";
+  try { path = sessionStorage.getItem("fr-donus") || "/"; sessionStorage.removeItem("fr-donus"); } catch (error) { /* ana sayfa */ }
+  return /^\/rapor\/\d{6}$/.test(path) ? path : "/";
+}
+
 function showAuth(signup) {
   if (access.email) return go("/");                 // giriş yapılmışsa bu sayfanın işi yok
   $("au-login").hidden = signup;
@@ -538,7 +557,7 @@ async function submitAuth(url, body, button, problem) {
     saveAccess();
     button.disabled = false;
     button.textContent = label;
-    go("/");
+    go(returnPath());
   } catch (error) {
     fail("Sunucuya ulaşılamadı. Tekrar dene.");
   }
@@ -727,7 +746,39 @@ const PAY_NOTES = {
 };
 let order = null;                         // { kind: "single" | "pro", hs6 }
 
+const soon = $("soon");
+const SOON_TEXT = {
+  single: "Tek rapor paketi yakında satışa açılacak. E-posta adresini bırakırsan açıldığında sana haber veririz.",
+  pro: "Pro paket yakında satışa açılacak. E-posta adresini bırakırsan açıldığında sana haber veririz.",
+};
+
+function openSoon(kind) {
+  soon.dataset.tur = kind;
+  $("sn-desc").textContent = SOON_TEXT[kind === "single" ? "single" : "pro"];
+  $("sn-email").value = access.email;
+  $("sn-error").hidden = true;
+  $("sn-form").hidden = false;
+  $("sn-done").hidden = true;
+  soon.showModal();
+}
+
+$("sn-send").addEventListener("click", async () => {
+  const problem = $("sn-error");
+  problem.hidden = true;
+  if (!$("sn-email").checkValidity()) { problem.textContent = "Geçerli bir e-posta adresi yaz."; problem.hidden = false; return; }
+  try {
+    const response = await postJson("/api/bekleme", { eposta: $("sn-email").value, tur: soon.dataset.tur });
+    const payload = await response.json();
+    if (!response.ok) { problem.textContent = payload.error || "Kaydın alınamadı. Tekrar dene."; problem.hidden = false; return; }
+    $("sn-form").hidden = true;
+    $("sn-done").hidden = false;
+  } catch (error) { problem.textContent = "Sunucuya ulaşılamadı. Tekrar dene."; problem.hidden = false; }
+});
+$("sn-email").addEventListener("keydown", (event) => { if (event.key === "Enter") $("sn-send").click(); });
+soon.addEventListener("click", (event) => { if (event.target === soon || event.target.closest("[data-close]")) soon.close(); });
+
 function openCheckout(kind) {
+  if (SOON) return openSoon(kind);
   // Tek rapor bir ürüne bağlıdır: açık bir rapor yoksa önce ürün seçtirilir.
   if (kind === "single" && !current) {
     go("/");
@@ -1160,6 +1211,19 @@ function watchMotion(node) {
 }
 
 if (MOTION) document.querySelectorAll(REVEALED).forEach(watchMotion);
+
+/* ---------- Ücretli paketler henüz satışta değilken ---------- */
+
+if (SOON) {
+  document.querySelector('.plan-card [data-buy="single"]').textContent = "Yakında, haber ver";
+  document.querySelectorAll(".plan-card").forEach((card) => { if (card.querySelector("[data-buy]")) card.classList.add("soon"); });
+  document.querySelector(".plan-card .ribbon").textContent = "Yakında";
+  $("demo-note").hidden = true;
+  $("soon-note").hidden = false;
+  document.querySelector(".pricing-head .lead").textContent = "Ücretsiz planda her ürünün en iyi pazarını görebilirsin. Bütün sıralamayı ve ülke detaylarını gösteren tek rapor ve Pro paket yakında açılacak.";
+  $("close-paid").hidden = true;
+  $("close-soon").hidden = false;
+}
 
 /* ---------- Ana sayfa kapanışı ---------- */
 

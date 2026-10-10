@@ -33,6 +33,10 @@ OPEN_SAMPLES = {"080222"}                  # tam raporu herkese açık örnek ü
 PRICES = {"single": 490, "pro": 999, "yearly": 9000}       # TL; web/app.js içindeki PRICES ile aynı olmalı
 # Gösterim modu: iyzico anahtarları girilene kadar ödeme para almadan onaylanır.
 DEMO = not odeme.configured()
+# iyzico bağlanana kadar ücretli paketler "yakında" olarak görünür ve satılmaz. Yerelde ödeme akışını para almadan
+# denemek için IHRACBUL_DEMO=1 verilir; o zaman ödeme onaylanmış sayılır ve paket açılır.
+FREE_GRANTS = DEMO and bool(os.environ.get("IHRACBUL_DEMO"))
+SOON = DEMO and not FREE_GRANTS
 LOGIN_PER_HOUR = {"eposta": 5, "ip": 30, "sifre": 10, "kayit": 10, "yonetim": 8}
 ADMIN_HOURS = 12                            # yönetim oturumu bu kadar saat sonra kapanır
 PASSWORD_MIN = 8     # bir e-postaya ve bir internet adresinden saatte en çok bu kadar giriş bağlantısı
@@ -64,7 +68,9 @@ def versioned(html):
     return html
 
 
-DAILY_NEW = {"free": 3, "pro": 10}          # ziyaretçi başına günde açılabilen, önbellekte olmayan ürün sayısı
+DAILY_NEW = {"free": 1, "pro": 10}          # ziyaretçi başına günde açılabilen, önbellekte olmayan ürün sayısı
+DAILY_FREE = 1                              # ücretsiz planda günde açılabilen farklı ürün sayısı (hazır örnekler sayılmaz)
+_seen = {}                                  # (gün, ziyaretçi) -> bugün açtığı ürün kodları
 _opened = {}                                # (gün, ziyaretçi) -> bugün açtığı yeni ürün sayısı
 READY_DAYS = 45                             # hazır rapor bu kadar günden eskiyse canlı veriyle yeniden kurulur
 
@@ -176,7 +182,7 @@ def is_admin(token):
 def admin_view():
     """Yönetim panelinin gösterdiği her şey: üyeler, satın almalar ve sitenin durumu."""
     return {**uyelik.overview(), "durum": {
-        "odeme": "deneme" if DEMO else "gercek", "kalici": uyelik.persistent(), "eposta": uyelik.mail_configured(),
+        "odeme": "yakinda" if SOON else "deneme" if DEMO else "gercek", "kalici": uyelik.persistent(), "eposta": uyelik.mail_configured(),
         "veri_istegi": comtrade.calls_today(), "veri_siniri": comtrade.DAILY_BUDGET}}
 
 
@@ -224,7 +230,7 @@ def sample(hs6):
     return found
 
 
-def report(hs6, visitor, plan):
+def report(hs6, visitor, plan, owned=False):
     """Raporu verir. Ziyaretçi günlük yeni ürün sınırını doldurduysa yalnızca önbellekteki ürünleri görebilir.
 
     Veri kaynağının günlük çağrı sınırı tüm site için ortaktır; tek bir ziyaretçi onu tüketmesin diye sınır konur.
@@ -232,7 +238,16 @@ def report(hs6, visitor, plan):
     """
     # Bellekteki rapor haftada bir yenilenir; uzun süre açık kalan sunucu eski veriyi göstermeye devam etmesin.
     week, key = datetime.date.today().isocalendar()[:2], (datetime.date.today(), visitor)
-    if _opened.get(key, 0) >= DAILY_NEW[plan]:
+    for stale in [old for old in list(_seen) + list(_opened) if old[0] != key[0]]:      # dünün sayaçları atılır
+        _seen.pop(stale, None)
+        _opened.pop(stale, None)
+    # Ücretsiz planda günde bir ürün: aynı ürüne yeniden bakmak serbest, ikinci bir ürün ertesi güne kalır.
+    # Hazır örnekler ve üyenin satın aldığı raporlar sayılmaz.
+    counted = plan == "free" and not owned and not (READY / f"{hs6}.json").is_file()
+    seen = _seen.setdefault(key, set())
+    if counted and hs6 not in seen and len(seen) >= DAILY_FREE:
+        raise LimitReached
+    if _opened.get(key, 0) >= DAILY_NEW[plan] and not (counted and hs6 not in seen):
         try:
             with comtrade.offline():
                 return _report(hs6, week)
@@ -242,6 +257,8 @@ def report(hs6, visitor, plan):
     body = _report(hs6, week)
     if comtrade.calls_today() > before:
         _opened[key] = _opened.get(key, 0) + 1
+    if counted:
+        seen.add(hs6)                       # yalnızca rapor gerçekten açıldıysa sayılır; hatalı kod hakkı tüketmez
     return body
 
 
@@ -271,8 +288,8 @@ class Handler(BaseHTTPRequestHandler):
         # Paylaşım görseli tam adres ister; alan adı istekten alınır, böylece her adreste doğru çıkar.
         origin = self._origin()
         html = versioned((WEB / "index.html").read_text(encoding="utf-8")).replace('content="/static/og.png"', f'content="{origin}/static/og.png"')
-        if not DEMO:                          # ödeme penceresi gösterim yerine fatura alanlarını gösterir
-            html = html.replace("<body", '<body data-odeme="gercek"', 1)
+        if not DEMO or SOON:                  # ödeme penceresi gerçek ödemede fatura alanlarını, "yakında"da haber listesi gösterir
+            html = html.replace("<body", f'<body data-odeme="{"yakinda" if DEMO else "gercek"}"', 1)
         # Rapor bağlantısı paylaşıldığında önizlemede ürünün adı görünsün.
         match = re.fullmatch(r"/rapor/(\d{6})/?", urllib.parse.urlparse(self.path).path)
         name = product_title(match.group(1)) if match else None
@@ -333,12 +350,17 @@ class Handler(BaseHTTPRequestHandler):
             grant = read_token(query.get("t", [""])[0])
             plan = "pro" if grant["pro"] else "free"
             try:
-                body = report(gtip[:6], self._visitor(), plan)
+                # Sınır üyede hesaba, ziyaretçide internet adresine göre tutulur.
+                body = report(gtip[:6], grant["email"] or self._visitor(), plan, gtip[:6] in grant["reports"])
                 opened = grant["pro"] or gtip[:6] in grant["reports"] or gtip[:6] in OPEN_SAMPLES
                 self._send(200, "application/json; charset=utf-8", body if opened else locked(body))
             except LimitReached:
-                self._json(429, {"error": f"Bugünlük {DAILY_NEW[plan]} yeni ürün sınırına ulaştın. Daha önce açtığın ürünlere bakmaya devam edebilirsin. "
-                                          + ("Yarın yeniden deneyebilirsin." if plan == "pro" else f"Pro pakette günlük sınır {DAILY_NEW['pro']} üründür.")})
+                if plan == "pro":
+                    message = f"Bugünlük {DAILY_NEW['pro']} yeni ürün sınırına ulaştın. Daha önce açtığın ürünlere bakmaya devam edebilirsin. Yarın yeniden deneyebilirsin."
+                else:
+                    message = (f"Ücretsiz planda günde {DAILY_FREE} ürün raporu açabilirsin. Bugün açtığın ürüne ve örnek raporlara bakmaya devam edebilirsin. "
+                               + ("Yarın yeni bir ürün arayabilirsin." if SOON else f"Pro pakette günlük sınır {DAILY_NEW['pro']} üründür."))
+                self._json(429, {"error": message})
             except ValueError as error:
                 self._json(400, {"error": str(error)})
             except RuntimeError:
@@ -454,6 +476,16 @@ class Handler(BaseHTTPRequestHandler):
             if not uyelik.check_password(email, password[:200]):
                 return self._json(401, {"error": "E-posta adresi ya da şifre hatalı."})
             self._json(200, session(email))
+        elif path == "/api/bekleme":
+            email, kind = uyelik.normalize(data.get("eposta")), data.get("tur")
+            if not email:
+                return self._json(400, {"error": "Geçerli bir e-posta adresi yaz."})
+            if kind not in PRICES:
+                return self._json(400, {"error": "Geçersiz istek."})
+            if throttled(("kayit", self._visitor())):
+                return self._json(429, {"error": "Çok fazla istek yapıldı. Bir saat sonra tekrar dene."})
+            uyelik.join_waitlist(email, kind)
+            self._json(200, {"tamam": True})
         elif path == "/api/abonelik-iptal":
             email = read_token(str(data.get("t") or ""))["email"]
             current = uyelik.subscription(email) if email else {"durum": ""}
@@ -558,6 +590,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(502, {"error": "Ödeme sayfası şu an açılamıyor. Biraz sonra tekrar dene."})
                 uyelik.tag_order(order_id, token)
                 return self._json(200, {"odeme_url": page})
+            if not FREE_GRANTS:
+                return self._json(409, {"error": "Ücretli paketler yakında açılacak."})
             uyelik.record_purchase(email, kind, code if kind == "single" else None, PRICES[kind], "demo")
             self._json(200, session(email))
         elif path == "/api/demo-sifirla":

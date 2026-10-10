@@ -255,5 +255,62 @@ class AcikOrnek(unittest.TestCase):
             self.assertRegex(script, r'hs6: "%s"[^}]*open: true' % code)
 
 
+
+class GunlukSinir(unittest.TestCase):
+    """Ücretsiz planda günde bir ürün. Rapor kurulumu taklit edilir; veri kaynağına gidilmez."""
+
+    def setUp(self):
+        self.real = server._report
+        server._report = lambda hs6, week: b"{}"
+        server._seen.clear()
+        server._opened.clear()
+
+    def tearDown(self):
+        server._report = self.real
+
+    def test_ikinci_urun_ertesi_gune_kalir(self):
+        server.report("111111", "ziyaretci", "free")
+        server.report("111111", "ziyaretci", "free")            # aynı ürüne yeniden bakmak serbest
+        with self.assertRaises(server.LimitReached):
+            server.report("222222", "ziyaretci", "free")
+
+    def test_sinir_kisiye_ozeldir(self):
+        server.report("111111", "bir", "free")
+        server.report("222222", "iki", "free")
+
+    def test_ornekler_ve_satin_alinan_rapor_sayilmaz(self):
+        server.report("080222", "ziyaretci", "free")
+        server.report("570242", "ziyaretci", "free")
+        server.report("333333", "ziyaretci", "free", owned=True)
+        server.report("111111", "ziyaretci", "free")
+        with self.assertRaises(server.LimitReached):
+            server.report("222222", "ziyaretci", "free")
+
+    def test_hatali_kod_hakki_tuketmez(self):
+        def broken(hs6, week):
+            raise ValueError("Geçersiz kod")
+        server._report = broken
+        with self.assertRaises(ValueError):
+            server.report("999999", "ziyaretci", "free")
+        server._report = lambda hs6, week: b"{}"
+        server.report("111111", "ziyaretci", "free")
+
+    def test_pro_bu_sinira_takilmaz(self):
+        for code in ("111111", "222222", "333333"):
+            server.report(code, "uye@firma.com", "pro")
+
+
+class Yakinda(unittest.TestCase):
+    def test_haber_listesi(self):
+        uyelik.join_waitlist("bekleyen@firma.com", "pro")
+        uyelik.join_waitlist("bekleyen@firma.com", "pro")
+        waiting = [item for item in uyelik.overview()["bekleme"] if item["eposta"] == "bekleyen@firma.com"]
+        self.assertEqual(len(waiting), 1)
+
+    def test_anahtarsiz_sunucu_paket_satmaz(self):
+        self.assertTrue(server.SOON)
+        self.assertFalse(server.FREE_GRANTS)
+
+
 if __name__ == "__main__":
     unittest.main()

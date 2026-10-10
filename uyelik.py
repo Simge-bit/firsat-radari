@@ -34,6 +34,7 @@ SCHEMA = [
     """CREATE TABLE IF NOT EXISTS siparisler (id TEXT PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
                                            zaman REAL NOT NULL, belirtec TEXT, odendi INTEGER NOT NULL DEFAULT 0)""",
 ]
+SCHEMA.append("CREATE TABLE IF NOT EXISTS bekleme (eposta TEXT NOT NULL, tur TEXT NOT NULL, zaman REAL NOT NULL, PRIMARY KEY (eposta, tur))")
 _ready = set()                              # tabloları kurulmuş veritabanları
 
 
@@ -275,16 +276,24 @@ def renew(email, until, period=None, amount=0):
                        (email, amount, time.time(), period))
 
 
+def join_waitlist(email, kind):
+    """Ücretli paketler açıldığında haber verilecekler listesine ekler; aynı kişi aynı paket için bir kez yazılır."""
+    with _db() as db:
+        db.execute("INSERT OR IGNORE INTO bekleme (eposta, tur, zaman) VALUES (?, ?, ?)", (email, kind, time.time()))
+
+
 def overview():
     """Yönetim paneli için tüm üyeler ve satın almalar, en yeniden eskiye."""
     with _db() as db:
         members = list(db.execute("SELECT eposta, ad, firma, kayit, pro_bitis, raporlar, sifre IS NOT NULL, abonelik_durum FROM uyeler ORDER BY kayit DESC LIMIT 1000"))
         purchases = list(db.execute("SELECT eposta, tur, urun, tutar, zaman, saglayici FROM satin_almalar ORDER BY zaman DESC LIMIT 1000"))
+        waiting = list(db.execute("SELECT eposta, tur, zaman FROM bekleme ORDER BY zaman DESC LIMIT 1000"))
     now = time.time()
     return {
         "uyeler": [{"eposta": row[0], "ad": row[1] or "", "firma": row[2] or "", "kayit": row[3], "pro_bitis": row[4] if row[4] > now else 0,
                     "raporlar": json.loads(row[5]), "sifre_var": bool(row[6]), "abonelik": row[7] or ""} for row in members],
         "satin_almalar": [dict(zip(("eposta", "tur", "urun", "tutar", "zaman", "saglayici"), row)) for row in purchases],
+        "bekleme": [dict(zip(("eposta", "tur", "zaman"), row)) for row in waiting],
     }
 
 

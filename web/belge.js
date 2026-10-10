@@ -403,6 +403,8 @@ function prepareDocument() {
 }
 
 function printDocument() {
+  // PDF yalnızca üyelere açıktır: giriş yapmamış ziyaretçi kayıt sayfasına gider, kayıttan sonra bu rapora döner.
+  if (!access.email) return askToJoin();
   if (prepareDocument()) window.print();
 }
 
