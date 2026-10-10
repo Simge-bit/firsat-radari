@@ -1,19 +1,25 @@
 """Fırsat skoru: plan belgesinin 6. bölümündeki model.
 
-Bu sürümde G (büyüme), A (büyüklük), H (boşluk) ve F (parçalanma) hesaplanır.
-T (tarife) ve L (lojistik) verisi henüz bağlı değil; ağırlıkları kalan faktörlere
-oransal olarak dağıtılır.
+Altı faktör: G (büyüme), A (büyüklük), T (tarife: Türkiye'ye uygulanan gümrük vergisi),
+L (lojistik: Türkiye'ye yakınlık), H (boşluk) ve F (parçalanma). Bir faktörün verisi alınamazsa
+ağırlığı kalan faktörlere oransal olarak dağıtılır.
 """
 
 import math
 import statistics
 
-WEIGHTS = {"G": 0.25, "A": 0.20, "T": 0.15, "L": 0.15, "H": 0.15, "F": 0.10}
+# Ağırlıklar geçmişe dönük sınamaya göre belirlendi (tools/dogrulama.py; 27 ürün, 2021 verisiyle skor, 2025 sonucu):
+# yakınlık ve Türkiye için boşluk sonraki yılları en iyi gösteren ölçülerdi, geçmiş talep büyümesi göstermedi.
+# Plan belgesindeki ilk ağırlıklar: G 0.25, A 0.20, T 0.15, L 0.15, H 0.15, F 0.10.
+WEIGHTS = {"L": 0.30, "H": 0.25, "A": 0.20, "T": 0.10, "F": 0.10, "G": 0.05}
 WINDOW = 5
 M_MIN = 1_000_000
 M_MIN_SHARE = 0.001   # alt eşik ürüne göre ölçeklenir: dünya ithalatının binde biri
-KAPPA_MIN = 0.4
+KAPPA_MIN = 0.3        # son verisi iki yıl geride kalan ama üç yılı dolu ülke (0,36) listede kalır, "veri zayıf" diye işaretlenir
 G_CAP = (-0.30, 0.40)  # yıllık büyüme bu aralığa kırpılır: sürdürülemez sıçramalar skoru ele geçirmesin
+ROBUST_MIN = 20        # bu sayıdan itibaren kırpma sınırları gerçek değerlerden seçilir
+T_CAP = 30.0           # gümrük vergisi puanı: %0 vergi 1, bu oran ve üstü 0
+ABSOLUTE = {"T"}       # zaten 0-1 ölçeğinde gelen, ülkeler arasında yeniden ölçeklenmeyen ölçüler
 SIZE_HALF = 5          # pazar, alt eşiğin bu kadar katındayken büyüme oranına güven 0,5 olur
 
 
@@ -52,6 +58,15 @@ def adjust_growth(rows, m_min):
         row["G"] = row["growth_trust"] * g + (1 - row["growth_trust"]) * median
 
 
+def tariff_score(rate):
+    """Gümrük vergisi puanı, mutlak ölçekte: %0 -> 1, T_CAP ve üstü -> 0.
+
+    Ülkeler arası göreli ölçek burada yanıltır: ülkelerin çoğu aynı oranı uygular (ör. bütün AB), bu yüzden
+    yüzde 3'lük bir vergi "en kötüler" arasına düşüp sıfır puan alabilir.
+    """
+    return 1 - min(max(rate, 0.0), T_CAP) / T_CAP
+
+
 def hhi(shares):
     return sum(share ** 2 for share in shares)
 
@@ -63,16 +78,23 @@ def _percentile(sorted_values, q):
 
 
 def normalize(values):
-    """%5-%95 kırpma, ardından 0-1 aralığına min-max (formül 13-14)."""
+    """%5-%95 kırpma, ardından 0-1 aralığına min-max (formül 13-14).
+
+    Yeterli sayıda değer varsa (en az 20) sınırlar listedeki gerçek değerlerden seçilir: ara değer hesabı tek bir uç
+    değeri sınırın içine taşır ve ölçeğin tamamını o değer belirler. Az sayıda değerde ara değer hesabı kullanılır.
+    """
     ordered = sorted(values)
-    p5, p95 = _percentile(ordered, 0.05), _percentile(ordered, 0.95)
+    if len(ordered) >= ROBUST_MIN:
+        p5, p95 = ordered[math.ceil((len(ordered) - 1) * 0.05)], ordered[math.floor((len(ordered) - 1) * 0.95)]
+    else:
+        p5, p95 = _percentile(ordered, 0.05), _percentile(ordered, 0.95)
     if p95 == p5:
         return [0.5] * len(values)
     return [(min(max(value, p5), p95) - p5) / (p95 - p5) for value in values]
 
 
 def score(rows):
-    """rows: her biri ham faktörleri ("G", "A", "H", "F") taşıyan sözlükler. Skoru ve z değerlerini ekler."""
+    """rows: her biri ham faktörleri ("G", "A", "T", "L", "H", "F") taşıyan sözlükler. Skoru ve z değerlerini ekler."""
     if not rows:
         return []
     factors = [f for f in WEIGHTS if all(f in row for row in rows)]
@@ -80,7 +102,8 @@ def score(rows):
     for row in rows:
         row["z"] = {}
     for f in factors:
-        for row, z in zip(rows, normalize([row[f] for row in rows])):
+        values = [row[f] for row in rows]
+        for row, z in zip(rows, values if f in ABSOLUTE else normalize(values)):
             row["z"][f] = z
     for row in rows:
         row["score"] = 100 * sum(WEIGHTS[f] / total_weight * row["z"][f] for f in factors)

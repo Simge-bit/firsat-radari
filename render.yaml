@@ -1,12 +1,26 @@
 services:
   - type: web
-    name: firsat-radari
+    name: ihracbul
     runtime: python
     plan: free
     buildCommand: "true"
     startCommand: python server.py
     envVars:
       - key: COMTRADE_KEY
+        sync: false
+      - key: WTO_KEY
+        sync: false
+      - key: IHRACBUL_SECRET
+        generateValue: true
+      # Üye hesapları bu dosyada durur; kalıcı disk bağlanmazsa sunucu yeniden başladığında silinir.
+      - key: IHRACBUL_DB
+        value: /var/data/uyeler.db
+      # Giriş e-postaları için posta sunucusu (ör. smtp.gmail.com ve uygulama şifresi).
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
         sync: false
       - key: PYTHON_VERSION
         value: 3.12.6

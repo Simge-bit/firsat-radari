@@ -1,9 +1,12 @@
 """UN Comtrade istemcisi: anahtarsız önizleme uç noktası, disk önbelleği, hız limiti için bekleme."""
 
+import datetime
 import functools
 import hashlib
 import json
 import os
+import re
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -18,8 +21,64 @@ CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 PREVIEW_ROW_LIMIT = 500
 TURKIYE = 792
 WORLD = 0
+# Yanıttaki onlarca alandan yalnızca bunlar kullanılır; önbelleğe de yalnızca bunlar yazılır.
+KEPT_FIELDS = ("reporterCode", "partnerCode", "cmdCode", "primaryValue", "netWgt")
+FRESH_DAYS = 30                            # son iki yılın verisi ve başvuru listeleri bu kadar gün sonra yeniden çekilir
+DAILY_BUDGET = 450                         # anahtarlı erişimin günlük 500 çağrı sınırının altında kalmak için
 
 _last_call = 0.0
+_local = threading.local()
+
+
+class CacheMiss(RuntimeError):
+    """Veri önbellekte yok ve bu istek için ağa çıkmak yasak (bkz. offline)."""
+
+
+class offline:
+    """`with comtrade.offline():` bloğunda yalnızca önbellek kullanılır; eksik veri CacheMiss verir."""
+
+    def __enter__(self):
+        _local.offline = True
+
+    def __exit__(self, *exc):
+        _local.offline = False
+
+
+def _spend():
+    """Günlük çağrı bütçesinden bir çağrı düşer; bütçe dolduysa boşuna beklemeden hata verir.
+
+    Sayaç dosyada tutulur: site, araçlar ve testler ayrı süreçlerde çalışsa da aynı günlük sınırı paylaşır.
+    """
+    today = datetime.date.today().isoformat()
+    counter = CACHE_DIR / "_kota.json"
+    try:
+        state = json.loads(counter.read_text())
+    except (OSError, ValueError):
+        state = {}
+    if state.get("day") != today:
+        state = {"day": today, "calls": 0}
+    if state["calls"] >= DAILY_BUDGET:
+        raise RuntimeError("Comtrade günlük çağrı bütçesi doldu.")
+    state["calls"] += 1
+    CACHE_DIR.mkdir(exist_ok=True)
+    counter.write_text(json.dumps(state))
+
+
+def calls_today():
+    """Bugün yapılan anahtarlı çağrı sayısı (sayaca göre)."""
+    try:
+        state = json.loads((CACHE_DIR / "_kota.json").read_text())
+    except (OSError, ValueError):
+        return 0
+    return state["calls"] if state.get("day") == datetime.date.today().isoformat() else 0
+
+
+def _stale(url, cache_file):
+    """Önbellekteki kopya eskidi mi? Eski yılların verisi değişmez; son iki yıl geç bildirimlerle dolmaya devam eder."""
+    period = re.search(r"[?&]period=(\d{4})", url)
+    if period and int(period.group(1)) < datetime.date.today().year - 2:
+        return False
+    return time.time() - cache_file.stat().st_mtime > FRESH_DAYS * 86400
 
 
 def _fetch_json(url, headers=None, pause=1.5, retries=5):
@@ -27,11 +86,20 @@ def _fetch_json(url, headers=None, pause=1.5, retries=5):
     global _last_call
     CACHE_DIR.mkdir(exist_ok=True)
     cache_file = CACHE_DIR / (hashlib.sha1(url.encode()).hexdigest() + ".json")
-    if cache_file.exists():
+    if cache_file.exists() and (getattr(_local, "offline", False) or not _stale(url, cache_file)):
         return json.loads(cache_file.read_text())
+    if getattr(_local, "offline", False):
+        raise CacheMiss(url)
 
     wait = 5
     for attempt in range(retries):
+        if url.startswith(KEYED_URL):
+            try:
+                _spend()
+            except RuntimeError:
+                if cache_file.exists():
+                    return json.loads(cache_file.read_text())
+                raise
         time.sleep(max(0.0, pause - (time.time() - _last_call)))
         _last_call = time.time()
         try:
@@ -42,11 +110,15 @@ def _fetch_json(url, headers=None, pause=1.5, retries=5):
             payload = None
         # Hız limitine takılınca API "data" alanı olmayan bir gövde döndürüyor.
         if payload is not None and ("data" in payload or "results" in payload):
+            if "data" in payload:
+                payload = {"data": [{field: row.get(field) for field in KEPT_FIELDS} for row in payload["data"]]}
             cache_file.write_text(json.dumps(payload))
             return payload
         if attempt < retries - 1:
             time.sleep(wait)
             wait *= 2
+    if cache_file.exists():                   # yenilenemedi: eski kopya hiç yoktan iyidir
+        return json.loads(cache_file.read_text())
     raise RuntimeError(f"Comtrade yanıt vermedi: {url}")
 
 
@@ -96,7 +168,7 @@ def product_name(hs6):
     return None
 
 
-@functools.cache
+@functools.lru_cache(maxsize=12)            # bir rapor en çok 11 matris kullanır; fazlası belleği doldurur
 def _matrix(hs6, year):
     """Anahtarlı erişimde tek sorguyla tüm ülkeler ve tedarikçiler: {ülke: {tedarikçi: (USD, net kg)}}."""
     matrix = {}

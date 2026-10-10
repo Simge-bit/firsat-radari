@@ -7,6 +7,8 @@ kurumun adresini taşır ve arayüzde "doğrula" uyarısıyla gösterilir. Mevzu
 
 AB = set("AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE".split())
 AVRASYA = {"RU", "BY", "KZ", "KG", "AM"}
+# Türkiye'nin ticareti durdurduğu ülkeler: raporda en sona alınır ve işaretlenir (bkz. COUNTRY_RULES).
+TICARET_DURDU = {"IL"}
 KORFEZ = {"SA", "AE", "KW", "QA", "BH", "OM"}
 # Türkiye ile yürürlükte serbest ticaret anlaşması olan ülkeler (AB gümrük birliği ayrıca ele alınır).
 STA = set("CH NO IS LI MK BA PS TN MA EG AL GE ME RS CL MU KR MY MD FO SG XK VE GB AE".split())

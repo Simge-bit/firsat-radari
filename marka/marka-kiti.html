@@ -1,0 +1,373 @@
+<title>İhraçbul Marka Kiti</title>
+<style>
+/* Yerleşim: tek sütun, 1040px; her bölüm solda dar bir başlık şeridi, sağda içerik. Ürünün koyu ekran dünyası. */
+:root {
+  color-scheme: dark;
+  --gece: #0b0c0f; --panel: #13151a; --panel-2: #191c22; --cizgi: #262a32; --cizgi-ince: #1e2128;
+  --kagit: #e8eaed; --kul: #8d939e; --soluk: #5c626d;
+  --bayrak: #e30a17; --bayrak-acik: #ff2633; --yukselis: #22c58b; --dusus: #ff5a64; --dikkat: #f0b440;
+  --yazi: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --rakam: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { background: var(--gece); color: var(--kagit); font: 15px/1.6 var(--yazi); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+.sayfa { max-width: 1040px; margin: 0 auto; padding-inline: 24px; padding-block: 0 96px; }
+a { color: inherit; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.04; font-weight: 750; letter-spacing: -.03em; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--bayrak-acik); }
+h3 { font-size: 15px; font-weight: 650; }
+p { max-width: 64ch; }
+.kul { color: var(--kul); }
+code { font: 500 12.5px/1 var(--rakam); color: var(--kul); }
+:focus-visible { outline: 2px solid var(--bayrak-acik); outline-offset: 3px; }
+
+.kapak { padding-block: 72px 56px; display: grid; gap: 28px; border-bottom: 1px solid var(--cizgi); }
+.kilit { display: inline-flex; align-items: center; gap: .6em; font-weight: 700; letter-spacing: -.02em; line-height: 1; white-space: nowrap; }
+.kilit svg { width: 1.5em; height: 1.5em; flex: none; }
+.kilit .yazi { width: auto; height: 1em; aspect-ratio: 4.8567; }
+.kapak .kilit { font-size: clamp(30px, 6vw, 54px); }
+.kapak p { font-size: 18px; color: var(--kul); }
+
+.bolum { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px 40px; padding-block: 56px; border-bottom: 1px solid var(--cizgi); }
+.bolum > header { display: grid; gap: 10px; align-content: start; }
+.bolum > header p { color: var(--kul); font-size: 13.5px; }
+.icerik { display: grid; gap: 24px; min-width: 0; }
+.iki { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.uc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kutu { background: var(--panel); border: 1px solid var(--cizgi); border-radius: 10px; padding: 20px; display: grid; gap: 8px; align-content: start; }
+.kutu p { color: var(--kul); font-size: 14px; }
+
+/* İşaret seçici */
+.secici { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border: 0; padding: 0; margin: 0; }
+.secici legend { padding: 0; margin-bottom: 12px; color: var(--kul); font-size: 14px; }
+.secici label { position: relative; background: var(--panel); border: 1px solid var(--cizgi); border-radius: 10px; padding: 20px; display: grid; gap: 12px; cursor: pointer; }
+.secici input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.secici label:has(input:checked) { border-color: var(--bayrak); background: var(--panel-2); }
+.secici label:has(input:focus-visible) { outline: 2px solid var(--bayrak-acik); outline-offset: 3px; }
+.secici p { color: var(--kul); font-size: 13.5px; }
+.secici svg { width: 52px; height: 52px; }
+.secici label { padding: 16px; gap: 8px; align-content: start; }
+.yazi-secici .onizleme { min-height: 40px; }
+.onizleme { font-size: 26px; }
+.ad i { font-style: normal; }
+.yz-iki i { font-weight: 400; }
+.yz-sora { font-family: "Sora", var(--yazi); font-weight: 600; letter-spacing: -.035em; }
+.yz-manrope { font-family: "Manrope", var(--yazi); font-weight: 800; letter-spacing: -.035em; }
+.yz-outfit { font-family: "Outfit", var(--yazi); font-weight: 500; letter-spacing: -.01em; }
+.yz-jost { font-family: "Jost", var(--yazi); font-weight: 500; letter-spacing: .16em; text-transform: uppercase; font-size: .78em; }
+.yz-fraunces { font-family: "Fraunces", Georgia, serif; font-weight: 600; letter-spacing: -.02em; }
+.yz-playfair { font-family: "Playfair Display", Georgia, serif; font-weight: 700; letter-spacing: -.01em; }
+.yz-bodoni { font-family: "Bodoni Moda", Georgia, serif; font-weight: 600; letter-spacing: -.01em; }
+.secili { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; color: var(--bayrak-acik); visibility: hidden; }
+.secici label:has(input:checked) .secili { visibility: visible; }
+
+/* Logo yüzeyleri */
+.yuzey { border-radius: 10px; border: 1px solid var(--cizgi); min-height: 150px; display: grid; place-items: center; padding: 24px; position: relative; }
+.yuzey .kilit { font-size: 26px; }
+.yuzey small { position: absolute; left: 14px; bottom: 10px; font-size: 11.5px; opacity: .7; }
+.y-gece { background: var(--gece); }
+.y-beyaz { background: #fff; color: #0b0c0f; border-color: #fff; }
+.y-kirmizi { background: var(--bayrak); color: #fff; border-color: var(--bayrak); }
+.boyutlar { display: flex; flex-wrap: wrap; align-items: end; gap: 28px; }
+.boyutlar figure { margin: 0; display: grid; gap: 8px; justify-items: start; }
+.boyutlar figcaption { font: 500 12px/1 var(--rakam); color: var(--kul); }
+.alan { background: var(--panel); border: 1px solid var(--cizgi); border-radius: 10px; padding: 28px; display: grid; place-items: center; }
+.alan .cerceve { border: 1px dashed var(--soluk); padding: 24px; position: relative; }
+.alan .cerceve::after { content: "işaretin yarısı kadar boşluk"; position: absolute; left: 0; top: -22px; font-size: 11.5px; color: var(--kul); white-space: nowrap; }
+.alan .kilit { font-size: 32px; }
+.yapma { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
+.yapma li { background: var(--panel); border: 1px solid var(--cizgi); border-radius: 10px; padding: 18px 14px 14px; display: grid; gap: 14px; justify-items: center; text-align: center; font-size: 13px; color: var(--kul); }
+.yapma .kilit { font-size: 17px; height: 40px; }
+.yapma li::after { content: "✕ " attr(data-neden); color: var(--dusus); }
+
+/* Renk */
+.renkler { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sw { background: var(--panel); border: 1px solid var(--cizgi); border-radius: 10px; overflow: hidden; display: grid; grid-template-rows: 72px auto; }
+.sw .chip { border-bottom: 1px solid var(--cizgi); }
+.sw div { padding: 14px 16px 16px; display: grid; gap: 4px; }
+.sw b { font-size: 14.5px; }
+.sw p { font-size: 13px; color: var(--kul); }
+.sw small { font-size: 12px; color: var(--soluk); }
+.oran { display: flex; height: 14px; border-radius: 7px; overflow: hidden; border: 1px solid var(--cizgi); }
+.oran span:nth-child(1) { flex: 78; background: var(--gece); }
+.oran span:nth-child(2) { flex: 16; background: var(--kagit); }
+.oran span:nth-child(3) { flex: 6; background: var(--bayrak); }
+
+/* Yazı */
+.olcek { display: grid; gap: 0; }
+.olcek > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: baseline; padding-block: 14px; border-top: 1px solid var(--cizgi-ince); }
+.olcek > div:first-child { border-top: 0; }
+.olcek code { white-space: nowrap; }
+.t1 { font-size: clamp(28px, 4.6vw, 46px); line-height: 1.06; font-weight: 750; letter-spacing: -.03em; }
+.t2 { font-size: 22px; font-weight: 650; letter-spacing: -.01em; line-height: 1.25; }
+.t3 { font-size: 15px; font-weight: 650; }
+.t4 { font-size: 14px; color: var(--kul); }
+.t5 { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--kul); }
+.t6 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+
+/* Dil */
+.ciftler { display: grid; gap: 12px; }
+.cift { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cift > div { border-radius: 10px; padding: 16px 18px; border: 1px solid var(--cizgi); background: var(--panel); display: grid; gap: 6px; align-content: start; }
+.cift span { font-size: 11px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
+.cift .yaz span { color: var(--yukselis); }
+.cift .yazma span { color: var(--dusus); }
+.cift .yazma p { color: var(--kul); }
+.kurallar { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+.kurallar li { padding-block: 12px; border-top: 1px solid var(--cizgi-ince); color: var(--kul); font-size: 14px; }
+.kurallar b { color: var(--kagit); font-weight: 600; }
+.dosyalar b { font-family: var(--rakam); font-size: 12.5px; margin-right: 8px; }
+
+/* Veri ögeleri */
+.ornek-tablo { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ornek-tablo th { text-align: right; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--soluk); padding: 0 0 10px; }
+.ornek-tablo th:nth-child(-n+2), .ornek-tablo td:nth-child(-n+2) { text-align: left; }
+.ornek-tablo td { padding: 11px 0; border-top: 1px solid var(--cizgi-ince); text-align: right; }
+.ornek-tablo td:first-child { color: var(--soluk); width: 32px; }
+.ornek-tablo td:nth-child(2) { font-weight: 600; }
+.skor { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; }
+.skor i { display: block; width: 56px; height: 4px; border-radius: 2px; background: #23262d; overflow: hidden; }
+.skor i b { display: block; height: 100%; background: #c9ced6; }
+.artis { color: var(--yukselis); } .azalis { color: var(--dusus); }
+.rozet { font-size: 10.5px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; padding: 3px 6px; border-radius: 4px; margin-left: 8px; }
+.rozet.gri { color: var(--kul); background: var(--panel-2); }
+.rozet.kizil { color: #ff6b74; background: rgba(227, 10, 23, .16); }
+.tasiyici { overflow-x: auto; }
+.harita { height: 120px; border-radius: 8px; border: 1px solid var(--cizgi); background-image: radial-gradient(var(--soluk) 1px, transparent 1.3px); background-size: 9px 9px; position: relative; overflow: hidden; }
+.harita::before { content: ""; position: absolute; left: 52%; top: 46%; width: 9px; height: 9px; border-radius: 50%; background: var(--bayrak); box-shadow: 0 0 0 5px rgba(227, 10, 23, .22); }
+.harita::after { content: ""; position: absolute; left: 22%; top: -40%; width: 31%; height: 160%; border: 1.5px solid var(--bayrak); border-color: var(--bayrak) transparent transparent transparent; border-radius: 50%; opacity: .8; }
+
+/* Uygulamalar */
+.profil { width: 112px; height: 112px; border-radius: 50%; background: var(--bayrak); display: grid; place-items: center; color: #fff; }
+.profil svg { width: 62px; height: 62px; }
+.kart { aspect-ratio: 1200 / 630; max-width: 100%; border-radius: 10px; border: 1px solid var(--cizgi); background: radial-gradient(120% 120% at 100% 0%, rgba(227, 10, 23, .28), transparent 55%), var(--gece); padding: 7%; display: grid; align-content: space-between; }
+.kart .kilit { font-size: 15px; }
+.kart strong { font-size: clamp(18px, 3.4vw, 30px); line-height: 1.08; letter-spacing: -.03em; font-weight: 750; max-width: 14ch; }
+.imza { background: #fff; color: #17191d; border-radius: 10px; padding: 20px; font-size: 13.5px; line-height: 1.5; display: grid; gap: 2px; }
+.imza .kilit { font-size: 16px; margin-bottom: 8px; }
+.imza span { color: #5d6470; }
+.rapor { background: #fff; color: #17191d; border-radius: 6px; aspect-ratio: 210 / 297; max-width: 200px; padding: 16px; display: grid; align-content: space-between; font-size: 9px; }
+.rapor .kilit { font-size: 10px; }
+.rapor em { font-style: normal; font-size: 7px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--bayrak); }
+.rapor strong { display: block; font-size: 15px; line-height: 1.1; letter-spacing: -.02em; margin-top: 4px; }
+.rapor span { color: #6b7079; font-size: 7px; }
+.etiketli { display: grid; gap: 10px; align-content: start; justify-items: start; }
+.etiketli > small { color: var(--kul); font-size: 12.5px; }
+
+.ad-tablo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.ad-tablo ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.ad-tablo li { font-size: 15px; }
+.ad-tablo .yanlis li { color: var(--kul); text-decoration: line-through; text-decoration-color: var(--dusus); }
+
+.baski { display: none; }
+@media print {
+  @page { size: 1120px 1584px; margin: 0; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sayfa { padding-block: 0 40px; }
+  .ekran { display: none; }
+  .baski { display: inline; }
+  .kapak { padding-block: 96px 64px; }
+  .bolum { padding-block: 44px; }
+  .kutu, .secici label, .sw, .yuzey, .alan, .cift, .etiketli, .yapma li, .olcek > div, .kurallar li { break-inside: avoid; }
+  .bolum > header { break-after: avoid; }
+}
+@media (max-width: 820px) {
+  .bolum { grid-template-columns: minmax(0, 1fr); padding-block: 40px; }
+  .uc, .renkler { grid-template-columns: minmax(0, 1fr); }
+  .secici { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yapma { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .iki, .cift, .kurallar, .ad-tablo { grid-template-columns: minmax(0, 1fr); }
+  .olcek > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- İşaretler: yalnız çizgi; rengi currentColor'dan alır. Zemin karosu ayrı çizilir. -->
+    <symbol id="isaret-ibre" viewBox="0 0 32 32"><circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 16 22.5 9.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="16" r="2.2" fill="currentColor"/></symbol>
+    <symbol id="isaret-nokta" viewBox="0 0 32 32"><rect x="13.4" y="13.4" width="5.2" height="12.6" rx="1.4" fill="currentColor"/><circle cx="16" cy="7.6" r="2.9" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+    <symbol id="isaret-ok" viewBox="0 0 32 32"><circle cx="10.4" cy="21.6" r="2.6" fill="currentColor"/><path d="M14.2 17.8 22.4 9.6M15.6 9.2h7.2v7.2" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+    <symbol id="isaret-yay" viewBox="0 0 32 32"><path d="M9.2 22.4C10.2 14 15 10.2 20.6 10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="9.2" cy="22.6" r="2.7" fill="currentColor"/><circle cx="23.2" cy="9.9" r="2.9" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+    <symbol id="isaret-mercek" viewBox="0 0 32 32"><circle cx="14" cy="14" r="7.4" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M19.6 19.6 25 25" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M11.4 16.6 16.4 11.6M12.6 11.4h4v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="isaret-pusula" viewBox="0 0 32 32"><circle cx="16" cy="16" r="9.4" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M21.4 10.6 18 18 10.6 21.4 14 14z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M21.4 10.6 18 18 14 14z" fill="currentColor"/></symbol>
+    <symbol id="isaret-konum" viewBox="0 0 32 32"><path d="M16 26.4c-4.6-4.9-7-8.6-7-11.7a7 7 0 0 1 14 0c0 3.1-2.4 6.8-7 11.7z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><circle cx="16" cy="14.4" r="2.5" fill="currentColor"/></symbol>
+    <symbol id="isaret-cubuk" viewBox="0 0 32 32"><rect x="7.5" y="18" width="4.4" height="6.5" rx="1.1" fill="currentColor" opacity=".55"/><rect x="13.8" y="13.5" width="4.4" height="11" rx="1.1" fill="currentColor" opacity=".78"/><rect x="20.1" y="7.5" width="4.4" height="17" rx="1.1" fill="currentColor"/></symbol>
+    <symbol id="isaret-sinir" viewBox="0 0 32 32"><path d="M13.4 7.5v17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.1 4.2"/><path d="M6.8 16h17M19.2 11.2 24.2 16l-5 4.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="yazi" viewBox="69 -245 5777 1190"><path d="M77.5 0.0V700.0H197.5V0.0ZM68.75 -138.25Q68.75 -110.75 89.0 -91.625Q109.25 -72.5 137.0 -72.5Q165.5 -72.5 185.375 -91.625Q205.25 -110.75 205.25 -138.25Q205.25 -166.5 185.375 -185.25Q165.5 -204.0 137 -204Q109.25 -204.0 89.0 -185.25Q68.75 -166.5 68.75 -138.25ZM559.5 378.75H1059.5V270.0H559.5ZM982.5 0.0V700.0H1101.25V0.0ZM512.5 0.0V700.0H631.25V0.0ZM1561.5 366.25 1784.0 700H1926.5L1689.0 366.25ZM1416.5 0.0V700.0H1535.25V0.0ZM1487.25 102.5H1627.75Q1668.5 102.5 1698.875 116.375Q1729.25 130.25 1746.25 156.375Q1763.25 182.5 1763.25 220.0Q1763.25 257.25 1746.25 283.5Q1729.25 309.75 1698.875 323.625Q1668.5 337.5 1627.75 337.5H1487.25V435.0H1632.75Q1709.5 435.0 1765.75 408.125Q1822.0 381.25 1853.25 332.0Q1884.5 282.75 1884.5 217.5Q1884.5 151.25 1853.25 102.5Q1822.0 53.75 1765.75 26.875Q1709.5 0.0 1632.75 0.0H1487.25ZM2256.0 520H2626.0L2603.5 420.5H2278.5ZM2439.0 198 2550.5 457.75 2552.75 487.0 2647.75 700.0H2781.5L2439.0 -38.75L2096.5 700.0H2230.25L2327.25 480.75L2329.0 454.75ZM3109.5 350.0Q3109.5 275.0 3143.0 219.75Q3176.5 164.5 3230.875 133.75Q3285.25 103.0 3349.25 103.0Q3399.25 103.0 3439.375 115.875Q3479.5 128.75 3511.875 151.375Q3544.25 174.0 3567.75 202.5V62.0Q3524.5 25.5 3473.375 6.5Q3422.25 -12.5 3345.25 -12.5Q3267.75 -12.5 3201.375 13.875Q3135.0 40.25 3085.75 88.875Q3036.5 137.5 3009.0 204.0Q2981.5 270.5 2981.5 350.0Q2981.5 429.5 3009.0 496.0Q3036.5 562.5 3085.75 611.125Q3135.0 659.75 3201.375 686.125Q3267.75 712.5 3345.25 712.5Q3422.25 712.5 3473.375 693.375Q3524.5 674.25 3567.75 638.0V497.5Q3544.25 526.0 3511.875 548.5Q3479.5 571.0 3439.375 584.0Q3399.25 597.0 3349.25 597.0Q3285.25 597.0 3230.875 566.25Q3176.5 535.5 3143.0 479.875Q3109.5 424.25 3109.5 350.0ZM3315.25 645.25 3228.5 824.0Q3248.5 813.0 3268.875 809.875Q3289.25 806.75 3296.25 806.75Q3321.25 806.75 3335.875 814.625Q3350.5 822.5 3350.5 841.25Q3350.5 859.25 3337.625 869.25Q3324.75 879.25 3298.75 879.25Q3281.5 879.25 3265.625 873.375Q3249.75 867.5 3233.75 854.75L3195.0 906.25Q3221.75 927.75 3247.5 936.25Q3273.25 944.75 3306.75 944.75Q3336.25 944.75 3362.625 933.25Q3389.0 921.75 3405.875 899.375Q3422.75 877.0 3422.75 844.75Q3422.75 816.5 3410.375 798.25Q3398.0 780 3379.625 770.625Q3361.25 761.25 3343.0 761.25Q3337.75 761.25 3332.625 761.5Q3327.5 761.75 3323.0 762.75L3395.25 646.75ZM3963.25 338.75H4083.75Q4150.5 338.75 4200.75 319.875Q4251.0 301 4279.5 264.375Q4308.0 227.75 4308.0 176.25Q4308.0 116.25 4279.5 77.375Q4251.0 38.5 4200.75 19.25Q4150.5 0.0 4083.75 0.0H3872.5V700.0H4096.25Q4170.5 700.0 4227.0 678.375Q4283.5 656.75 4315.75 612.125Q4348.0 567.5 4348.0 498.25Q4348.0 448.25 4327.875 412.125Q4307.75 376.0 4272.625 352.875Q4237.5 329.75 4192.375 318.625Q4147.25 307.5 4096.25 307.5H3963.25V372.75H4088.75Q4119.0 372.75 4144.125 379.625Q4169.25 386.5 4187.875 400.625Q4206.5 414.75 4216.625 436.125Q4226.75 457.5 4226.75 485.75Q4226.75 525.0 4208.875 550.75Q4191.0 576.5 4159.875 589.5Q4128.75 602.5 4088.75 602.5H3991.25V97.5H4076.25Q4125.5 97.5 4156.125 121.25Q4186.75 145.0 4186.75 189.25Q4186.75 218.5 4172.75 239.0Q4158.75 259.5 4133.75 270.25Q4108.75 281.0 4076.25 281.0H3963.25ZM4628.5 0.0V470.0Q4628.5 527.75 4647.0 573.625Q4665.5 619.5 4699.875 651.375Q4734.25 683.25 4781.125 700.375Q4828.0 717.5 4884.0 717.5Q4940.0 717.5 4986.875 700.375Q5033.75 683.25 5068.125 651.375Q5102.5 619.5 5121.0 573.625Q5139.5 527.75 5139.5 470.0V0.0H5020.75V465.0Q5020.75 529.5 4986.125 569.125Q4951.5 608.75 4884.0 608.75Q4816.5 608.75 4781.875 569.125Q4747.25 529.5 4747.25 465.0V0.0ZM5449.5 0.0V700.0H5845.75V593.75H5568.25V0.0Z" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<main class="sayfa" lang="tr">
+  <section class="kapak">
+    <span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span>
+    <h1>Marka kiti</h1>
+    <p>Logo, renk, yazı ve dil. İhraçbul adına yapılan her şey (site, rapor, sosyal medya paylaşımı, sunum) buradaki kurallarla aynı elden çıkmış gibi görünür.</p>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Marka özü</h2><p>Her kararın döndüğü yer.</p></header>
+    <div class="icerik">
+      <p class="t2">Ürününü yaz, nereye satacağını gör.</p>
+      <div class="iki">
+        <div class="kutu"><h3>Ne yapar</h3><p>Bir ürün için dünyadaki ithalat verisini tarar, ülkeleri karşılaştırır ve hangi pazara yönelmek gerektiğini gerekçesiyle söyler.</p></div>
+        <div class="kutu"><h3>Kimin için</h3><p>Araştırma ekibi olmayan, ihracata yeni başlayan ya da yeni pazar arayan küçük ve orta ölçekli firmalar.</p></div>
+        <div class="kutu"><h3>Farkı</h3><p>Veri tabanı değil, hazır cevap. Müşteri milyonlarca kayıt içinde aramaz; sıralı listeyi ve nedenini alır.</p></div>
+        <div class="kutu"><h3>Kişiliği</h3><p>Net, hesabını veren, sade. Bir borsa ekranı kadar ciddi, bir arkadaş kadar açık konuşur.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Logo</h2><p>Kırmızı karo içinde beyaz ibre, yanında büyük harflerle marka adı.</p></header>
+    <div class="icerik">
+      <div class="iki">
+        <div class="kutu"><h3>İşaret: İbre</h3><p>Kırmızı karo içinde beyaz bir gösterge iğnesi. İğne sağ üstü, yani gidilecek yönü gösterir. Karonun köşe yuvarlaklığı kenarın yaklaşık beşte biridir.</p></div>
+        <div class="kutu"><h3>Ad: aralıklı büyük harf</h3><p>Jost Medium ile, harfler arasında harf boyunun 0,16 katı boşlukla yazılır. Ad harf çizgilerine çevrilmiştir; yazı tipi yüklü olmayan cihazda da aynı görünür.</p></div>
+      </div>
+
+      <div class="uc">
+        <div class="yuzey y-gece"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><small>Ana kullanım</small></div>
+        <div class="yuzey y-beyaz"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><small>Açık zemin, baskı</small></div>
+        <div class="yuzey y-kirmizi"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#fff"/><use class="isaret" href="#isaret-ibre" color="#e30a17"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><small>Kırmızı zemin</small></div>
+      </div>
+
+      <div class="iki">
+        <div class="alan"><div class="cerceve"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span></div></div>
+        <div class="kutu">
+          <h3>Boşluk ve en küçük boyut</h3>
+          <p>Logonun çevresinde her yönde en az işaretin yarısı kadar boşluk kalır. Yazılı logoda işaret 20 pikselden küçük olmaz. Daha dar yerde ad bırakılır, yalnızca işaret kullanılır; işaret de 14 pikselden küçülmez.</p>
+          <div class="boyutlar">
+            <figure><svg width="64" height="64" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><figcaption>64</figcaption></figure>
+            <figure><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><figcaption>32</figcaption></figure>
+            <figure><svg width="20" height="20" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><figcaption>20</figcaption></figure>
+            <figure><svg width="14" height="14" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><figcaption>14</figcaption></figure>
+          </div>
+        </div>
+      </div>
+
+      <ul class="yapma">
+        <li data-neden="Esnetme"><span class="kilit" style="transform:scaleX(1.22)"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span></li>
+        <li data-neden="Karonun rengini değiştirme"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#2f6fed"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span></li>
+        <li data-neden="Eğme, döndürme"><span class="kilit" style="transform:rotate(-12deg)"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span></li>
+        <li data-neden="Adı kırmızı yazma"><span class="kilit" style="color:#e30a17"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Ad</h2><p>Metin içinde tek kelime, noktalı büyük İ ile.</p></header>
+    <div class="icerik">
+      <div class="ad-tablo">
+        <div class="kutu"><h3>Doğru</h3><ul><li>İhraçbul</li><li>İhraçbul'da baktım</li><li>İhraçbul Pro</li><li>İhraçbul raporu</li></ul></div>
+        <div class="kutu yanlis"><h3>Yanlış</h3><ul><li>İhraç Bul</li><li>ihraçbul</li><li>IhracBul</li><li>Ihraçbul</li></ul></div>
+      </div>
+      <p class="kul">İnternet adresinde ve kullanıcı adlarında Türkçe harf kullanılamadığı için <code>ihracbul</code> yazılır. Bunun dışında her yerde ç ve noktalı İ korunur. Tamamı büyük harfli yazım yalnızca logoya özgüdür; cümle içinde İhraçbul yazılır.</p>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Renk</h2><p>Koyu bir ekran, açık renk rakamlar, tek bir kırmızı.</p></header>
+    <div class="icerik">
+      <ul class="renkler"><li class="sw"><span class="chip" style="background:#0b0c0f"></span><div><b>Gece</b><code>#0B0C0F</code><p>Sayfa zemini. Markanın ana yüzeyi.</p></div></li><li class="sw"><span class="chip" style="background:#13151a"></span><div><b>Panel</b><code>#13151A</code><p>Kutular, tablolar, kartlar.</p></div></li><li class="sw"><span class="chip" style="background:#262a32"></span><div><b>Çizgi</b><code>#262A32</code><p>Kenarlıklar ve ayırıcılar.</p></div></li><li class="sw"><span class="chip" style="background:#e8eaed"></span><div><b>Kağıt</b><code>#E8EAED</code><p>Ana metin ve rakamlar.</p><small>Gece üzerinde kontrast 16,2:1</small></div></li><li class="sw"><span class="chip" style="background:#8d939e"></span><div><b>Kül</b><code>#8D939E</code><p>İkincil metin, açıklamalar.</p><small>Gece üzerinde kontrast 6,3:1</small></div></li><li class="sw"><span class="chip" style="background:#e30a17"></span><div><b>Bayrak kırmızısı</b><code>#E30A17</code><p>Logo, ana düğme, vurgu. Türk bayrağının kırmızısı.</p><small>Beyaz yazıyla kontrast 4,9:1</small></div></li><li class="sw"><span class="chip" style="background:#22c58b"></span><div><b>Yükseliş</b><code>#22C58B</code><p>Yalnızca artan değerler.</p><small>Gece üzerinde kontrast 8,8:1</small></div></li><li class="sw"><span class="chip" style="background:#ff5a64"></span><div><b>Düşüş</b><code>#FF5A64</code><p>Yalnızca azalan değerler ve uyarı etiketleri.</p><small>Gece üzerinde kontrast 6,4:1</small></div></li><li class="sw"><span class="chip" style="background:#f0b440"></span><div><b>Dikkat</b><code>#F0B440</code><p>Değerlendirmedeki dikkat notları.</p><small>Gece üzerinde kontrast 10,5:1</small></div></li></ul>
+      <div class="kutu">
+        <h3>Oran</h3>
+        <div class="oran" role="img" aria-label="Yüzeyin yaklaşık yüzde 78'i gece, yüzde 16'sı kağıt, yüzde 6'sı kırmızı"><span></span><span></span><span></span></div>
+        <p>Kırmızı azdır, o yüzden görülür. Bir ekranda yalnızca logoda, ana düğmede ve tek bir vurguda kullanılır. Yeşil ve açık kırmızı süs değildir; yalnızca artış ve azalışı gösterir.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Yazı</h2><p>Cihazın kendi arayüz yazı tipi. Jost yalnızca logoda kullanılır.</p></header>
+    <div class="icerik">
+      <div class="olcek">
+        <div><code>Başlık · 750</code><span class="t1">Nereye satacağını gör.</span></div>
+        <div><code>Bölüm · 650</code><span class="t2">Skor nasıl hesaplanıyor</span></div>
+        <div><code>Alt başlık · 650</code><span class="t3">Pazar sıralaması</span></div>
+        <div><code>Metin · 400</code><span class="t4">Ürününü ithal eden tüm ülkeler 0-100 arası fırsat skoruyla sıralanır.</span></div>
+        <div><code>Etiket · 600</code><span class="t5">İthalat, milyon $</span></div>
+        <div><code>Rakam · 700</code><span class="t6">89,4 mn $ &nbsp; %25,6 &nbsp; 2.640 km</span></div>
+      </div>
+      <p class="kul">Rakamlar her zaman eşit genişlikte basılır ki tablolarda alt alta hizalansın. Başlıklarda harf aralığı hafifçe daraltılır, büyük harfli etiketlerde açılır. Kod ve GTİP numaraları tek aralıklı yazı tipiyle yazılır: <code>5702.42</code></p>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Dil</h2><p>İhracatçıyla aynı masada oturan biri gibi.</p></header>
+    <div class="icerik">
+      <div class="ciftler">
+        <div class="cift"><div class="yaz"><span>Yaz</span><p>Ürününü yaz, nereye satacağını gör.</p></div><div class="yazma"><span>Yazma</span><p>Yeni nesil, uçtan uca ihracat zekası çözümleri.</p></div></div>
+        <div class="cift"><div class="yaz"><span>Yaz</span><p>Hollanda'nın ithalatı yılda %25,6 büyüyor.</p></div><div class="yazma"><span>Yazma</span><p>Hollanda inanılmaz bir fırsat sunuyor!</p></div></div>
+        <div class="cift"><div class="yaz"><span>Yaz</span><p>Bu rapor ülke seçmene yardım eder, firma adı vermez.</p></div><div class="yazma"><span>Yazma</span><p>Müşterilerini senin yerine biz buluyoruz.</p></div></div>
+        <div class="cift"><div class="yaz"><span>Yaz</span><p>Veri 2024 yılına ait. Sevkiyattan önce oranı doğrula.</p></div><div class="yazma"><span>Yazma</span><p>En güncel ve en doğru veriler.</p></div></div>
+      </div>
+      <ul class="kurallar">
+        <li><b>Sen diye hitap et.</b> "Ürününüzü yazınız" değil, "ürününü yaz".</li>
+        <li><b>Rakamla konuş.</b> "Hızlı büyüyor" yerine "yılda %25,6".</li>
+        <li><b>Garanti verme.</b> Veri ne gösteriyorsa onu söyle, satış vaat etme.</li>
+        <li><b>Sınırı açıkça söyle.</b> Neyin bilinmediğini gizleme.</li>
+        <li><b>Kısa cümle kur.</b> Bir cümlede bir fikir.</li>
+        <li><b>Uzun çizgi kullanma.</b> Virgül, nokta ya da iki nokta yeter.</li>
+        <li><b>Yüzde işareti başta.</b> %25,6 yazılır; 25,6% yazılmaz.</li>
+        <li><b>Ondalık virgül, binlik nokta.</b> 89,4 mn $ ve 2.640 km.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Veri ögeleri</h2><p>Markayı tanıtan asıl şey: verinin görünüşü.</p></header>
+    <div class="icerik">
+      <div class="kutu tasiyici">
+        <table class="ornek-tablo">
+          <thead><tr><th>#</th><th>Ülke</th><th>Skor</th><th>İthalat, mn $</th><th>Yıllık büyüme</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Hollanda</td><td><span class="skor">90<i><b style="width:90%"></b></i></span></td><td>89,4</td><td class="artis">▲ %25,6</td></tr>
+            <tr><td>2</td><td>Danimarka</td><td><span class="skor">80<i><b style="width:80%"></b></i></span></td><td>24,1</td><td class="artis">▲ %18,3</td></tr>
+            <tr><td>58</td><td>Suudi Arabistan</td><td><span class="skor">38<i><b style="width:38%"></b></i></span></td><td>38,2</td><td class="azalis">▼ %30,6</td></tr>
+            <tr><td>59</td><td>Özbekistan<span class="rozet gri">Net ihracatçı</span></td><td><span class="skor">38<i><b style="width:38%"></b></i></span></td><td>3,5</td><td class="artis">▲ %53,4</td></tr>
+            <tr><td>65</td><td>İsrail<span class="rozet kizil">Ticaret durdu</span></td><td>–</td><td>7,7</td><td class="artis">▲ %4,5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="iki">
+        <div class="kutu"><h3>Yön hem renkle hem okla</h3><p>Artış yeşil ve yukarı ok, azalış kırmızı ve aşağı ok. Renk tek başına bilgi taşımaz; siyah beyaz baskıda da okunur.</p></div>
+        <div class="kutu"><h3>Noktalı harita</h3><div class="harita" role="img" aria-label="Noktalardan oluşan harita deseni, Türkiye'den çıkan kırmızı bir yay"></div><p>Dünya haritası noktalardan çizilir, Türkiye kırmızı noktadır, pazarlara ince kırmızı yaylar uzanır.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bolum">
+    <header><h2>Uygulamalar</h2><p>Aynı parçalar, farklı yerlerde.</p></header>
+    <div class="icerik">
+      <div class="iki">
+        <div class="etiketli"><div class="profil"><svg viewBox="0 0 32 32" aria-hidden="true"><use class="isaret" href="#isaret-ibre" color="#fff"/></svg></div><small>Profil görseli (Instagram, LinkedIn). Kırmızı zemin, yalnızca işaret.</small></div>
+        <div class="etiketli"><div class="rapor"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><div><em>Pazar fırsat raporu</em><strong>Natürel sızma zeytinyağı</strong></div><span>GTİP 1509.20 · Veri yılı 2024</span></div><small>Rapor kapağı. Baskıda beyaz zemin, kırmızı yalnızca işarette ve üst başlıkta.</small></div>
+      </div>
+      <div class="iki">
+        <div class="etiketli"><div class="kart"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><strong>Ürününü yaz, nereye satacağını gör.</strong></div><small>Paylaşım kartı. Bağlantı WhatsApp ya da LinkedIn'de paylaşılınca çıkan görsel.</small></div>
+        <div class="etiketli"><div class="imza"><span class="kilit"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#e30a17"/><use class="isaret" href="#isaret-ibre" color="#fff"/></svg><svg class="yazi" role="img" aria-label="İhraçbul"><use href="#yazi"/></svg></span><b>Simge Solmaz</b><span>Kurucu</span><span>simgesolmaz0@gmail.com</span></div><small>E-posta imzası.</small></div>
+      </div>
+    </div>
+  </section>
+  <section class="bolum">
+    <header><h2>Dosyalar</h2><p>Proje klasöründeki <code>marka</code> dizininde. Her biri hem SVG hem PNG.</p></header>
+    <div class="icerik">
+      <ul class="kurallar dosyalar">
+        <li><b>logo-koyu-zemin</b> Koyu zeminde yatay logo. Ana kullanım.</li>
+        <li><b>logo-acik-zemin</b> Beyaz ya da açık zeminde, baskıda.</li>
+        <li><b>logo-kirmizi-zemin</b> Kırmızı zeminde; karo beyaz, ibre kırmızı.</li>
+        <li><b>isaret</b> Yalnızca işaret. Uygulama simgesi, küçük alanlar.</li>
+        <li><b>isaret-kirmizi-zemin</b> Kırmızı zeminde yalnızca işaret.</li>
+        <li><b>profil</b> Sosyal medya profil görseli; daire kesime uygun.</li>
+        <li><b>yazi-koyu-zemin</b> Yalnızca ad, beyaz.</li>
+        <li><b>yazi-acik-zemin</b> Yalnızca ad, koyu.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+

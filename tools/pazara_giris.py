@@ -36,6 +36,8 @@ ALIASES = {
     "FILDISI SAHILI": "CI", "FILISTIN": "PS", "GUNEY SUDAN CUMHURIYETI": "SS", "NIJER CUMHURIYETI": "NE",
     "SURIYE ARAP CUMHURIYETI": "SY", "Y.ZELLANDA": "NZ", "ZAMBIYA CUMHURIYETI": "ZM",
 }
+# Artık kullanılmayan kodlar; güncel kodla aynı Türkçe adı taşıdıkları için eşleşmeyi bozarlar (FX ve FR: "Fransa").
+RETIRED = {"AN", "BU", "CS", "DD", "DY", "FX", "HV", "NH", "RH", "SU", "TP", "UK", "VD", "YD", "YU", "ZR"}
 # Ticaret verisinde karşılığı olmadığı için bilerek atlananlar.
 SKIPPED = {"KUZEY KIBRIS TURK CUMHURIYETI"}
 _FOLD = str.maketrans("ÇĞİIÖŞÜÂÎÛ", "CGIIOSUAIU")
@@ -64,7 +66,7 @@ def country_codes():
               'for (let a = 65; a < 91; a++) for (let b = 65; b < 91; b++) { const c = String.fromCharCode(a, b);'
               'try { const t = n.of(c); if (t && t !== c) o[c] = t; } catch (e) {} } console.log(JSON.stringify(o));')
     names = json.loads(subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True).stdout)
-    codes = {fold(name): iso2 for iso2, name in names.items()}
+    codes = {fold(name): iso2 for iso2, name in names.items() if iso2 not in RETIRED}
     codes.update(ALIASES)
     return codes
 
@@ -85,8 +87,25 @@ def offices(codes, unmatched):
                     if fold(country) not in SKIPPED:
                         unmatched.add(country)
                     continue
-                result.setdefault(iso2, []).append({"sehir": tr_title(cells[1]), "eposta": emails[0].lower()})
+                # Şehir hücresi boş olan ek ofis (ör. AB nezdindeki temsilcilik) bir önceki ofisin şehrindedir.
+                city = tr_title(cells[1]) or (result.get(iso2) or [{"sehir": ""}])[-1]["sehir"]
+                result.setdefault(iso2, []).append({"sehir": city, "eposta": emails[0].lower()})
     return result
+
+
+def end_date(start, raw):
+    """Bitiş tarihini düzeltir: listedeki metin biçimli ya da yılı hatalı tarihler başlangıç yılına göre okunur."""
+    text = str(raw or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}.*", text) and text[:10] >= start:
+        return text[:10]
+    found = re.match(r"(\d{4})-(\d{2})-(\d{2})", text)
+    day, month = (found.group(3), found.group(2)) if found else (None, None)
+    if not found:
+        found = re.match(r"(\d{1,2})\.(\d{1,2})\.", text)
+        if found:
+            day, month = found.group(1).zfill(2), found.group(2).zfill(2)
+    candidate = f"{start[:4]}-{month}-{day}" if day else start
+    return candidate if candidate >= start else start
 
 
 def fairs(codes, unmatched):
@@ -102,7 +121,7 @@ def fairs(codes, unmatched):
                 unmatched.add(str(country).strip())
             continue
         result.setdefault(iso2, []).append({
-            "ad": re.sub(r"\s+", " ", str(name)).strip(), "baslangic": str(start)[:10], "bitis": str(end or start)[:10],
+            "ad": re.sub(r"\s+", " ", str(name)).strip(), "baslangic": str(start)[:10], "bitis": end_date(str(start)[:10], end),
             "konu": re.sub(r"\s+", " ", str(subject or "")).strip(), "sehir": tr_title(city or "")})
     for items in result.values():
         items.sort(key=lambda fair: fair["baslangic"])

@@ -1,0 +1,114 @@
+"""Erişim kilidi ve üyelik: belirteç, kilitli veri, satın alma ve giriş. Çalıştırma: python3 -m unittest discover tests"""
+
+import base64
+import json
+import os
+import tempfile
+import time
+import unittest
+
+os.environ["IHRACBUL_DB"] = os.path.join(tempfile.mkdtemp(), "test.db")
+os.environ["IHRACBUL_SECRET"] = "test-anahtari"
+
+import server  # noqa: E402
+import uyelik  # noqa: E402
+
+ROW = {"code": 528, "country": "Netherlands", "iso2": "NL", "year": 2025, "imports": 100.0, "G_raw": 0.1, "tr_share": 0.25, "score": 90.0,
+       "kappa": 1.0, "series": [[2024, 90], [2025, 100]], "reexport": 0.1, "blocked": False, "z": {"A": 1}, "rivals": [{"country": "X"}],
+       "offices": [{"eposta": "a@ticaret.gov.tr"}], "tariff": {"mfn": 8}, "fairs": [], "requirements": [], "unit_price": 4.2, "restrictions": [{"tur": ["yasak"]}]}
+FULL = json.dumps({"hs6": "570242", "t0": 2025, "rows": [ROW, {**ROW, "country": "Denmark", "iso2": "DK", "imports": 50.0, "tr_share": 0.1}]}).encode()
+
+
+class Belirtec(unittest.TestCase):
+    def test_imzali_belirtec_okunur(self):
+        grant = server.read_token(server.sign({"email": "a@b.com", "pro": True, "pro_until": time.time() + 60, "reports": ["570242"]}))
+        self.assertEqual((grant["email"], grant["pro"], grant["reports"]), ("a@b.com", True, ["570242"]))
+
+    def test_belirtecsiz_haksiz(self):
+        for token in ("", "abc", "abc.def", None):
+            self.assertEqual(server.read_token(token)["pro"], False)
+            self.assertEqual(server.read_token(token)["reports"], [])
+
+    def test_oynanmis_belirtec_reddedilir(self):
+        body, mark = server.sign({"email": "a@b.com", "pro": False, "pro_until": 0, "reports": []}).split(".")
+        forged = base64.urlsafe_b64encode(json.dumps({"email": "a@b.com", "pro": True, "pro_until": 9e12, "reports": ["570242"]}).encode()).decode().rstrip("=")
+        grant = server.read_token(forged + "." + mark)
+        self.assertFalse(grant["pro"])
+        self.assertEqual(grant["reports"], [])
+
+    def test_suresi_dolan_pro_gecersiz(self):
+        self.assertFalse(server.read_token(server.sign({"email": "a@b.com", "pro": True, "pro_until": time.time() - 1, "reports": []}))["pro"])
+
+    def test_baska_anahtarla_imzalanan_reddedilir(self):
+        token = server.sign({"email": "a@b.com", "pro": True, "pro_until": time.time() + 60, "reports": []})
+        os.environ["IHRACBUL_SECRET"] = "baska"
+        try:
+            self.assertFalse(server.read_token(token)["pro"])
+        finally:
+            os.environ["IHRACBUL_SECRET"] = "test-anahtari"
+
+
+class KilitliVeri(unittest.TestCase):
+    def setUp(self):
+        self.locked = json.loads(server.locked(FULL))
+
+    def test_yalnizca_birinci_pazar_gider(self):
+        self.assertEqual(len(self.locked["rows"]), 1)
+        self.assertEqual(self.locked["pazar_sayisi"], 2)
+        self.assertNotIn("Denmark", json.dumps(self.locked))
+
+    def test_ulke_detayi_gitmez(self):
+        for field in ("rivals", "offices", "tariff", "fairs", "requirements", "unit_price"):
+            self.assertNotIn(field, self.locked["rows"][0])
+        self.assertEqual(self.locked["rows"][0]["restrictions"], [])
+
+    def test_toplamlar_sunucuda_hesaplanir(self):
+        self.assertAlmostEqual(self.locked["ozet"]["toplam"], 150.0)
+        self.assertAlmostEqual(self.locked["ozet"]["turkiye"], 30.0)
+        self.assertTrue(self.locked["kilitli"])
+
+
+class Uyelik(unittest.TestCase):
+    def test_eposta_dogrulama(self):
+        self.assertEqual(uyelik.normalize("  Ad.Soyad@Firma.COM "), "ad.soyad@firma.com")
+        for bad in ("", "ad", "ad@", "@firma.com", "ad@firma", "ad soyad@firma.com", None, "a" * 300 + "@b.com"):
+            self.assertIsNone(uyelik.normalize(bad))
+
+    def test_tek_rapor_yalnizca_o_urunu_acar(self):
+        grant = uyelik.record_purchase("tek@ornek.com", "single", "570242", 490, "demo")
+        self.assertEqual((grant["pro"], grant["reports"]), (False, ["570242"]))
+
+    def test_yillik_pro_bir_yil_surer(self):
+        grant = uyelik.record_purchase("yil@ornek.com", "yearly", None, 9000, "demo")
+        self.assertTrue(grant["pro"])
+        self.assertAlmostEqual((grant["pro_until"] - time.time()) / 86400, 366, delta=0.01)
+
+    def test_yenileme_kalan_sureye_eklenir(self):
+        uyelik.record_purchase("ay@ornek.com", "pro", None, 999, "demo")
+        grant = uyelik.record_purchase("ay@ornek.com", "pro", None, 999, "demo")
+        self.assertAlmostEqual((grant["pro_until"] - time.time()) / 86400, 62, delta=0.01)
+
+    def test_giris_kodu_tek_kullanimlik(self):
+        code = uyelik.login_code("giris@ornek.com")
+        self.assertEqual(uyelik.redeem(code), "giris@ornek.com")
+        self.assertIsNone(uyelik.redeem(code))
+        self.assertIsNone(uyelik.redeem("uydurma"))
+
+    def test_oturum_belirteci_haklari_tasir(self):
+        uyelik.record_purchase("oturum@ornek.com", "single", "080222", 490, "demo")
+        grant = server.read_token(server.session("oturum@ornek.com")["token"])
+        self.assertEqual((grant["email"], grant["reports"]), ("oturum@ornek.com", ["080222"]))
+
+    def test_giris_istegi_sinirlanir(self):
+        key = ("eposta", "sinir@ornek.com")
+        results = [server.throttled(key) for _ in range(server.LOGIN_PER_HOUR["eposta"] + 1)]
+        self.assertEqual(results, [False] * server.LOGIN_PER_HOUR["eposta"] + [True])
+
+    def test_fiyatlar_sayfayla_ayni(self):
+        script = (server.WEB / "app.js").read_text(encoding="utf-8")
+        for kind, amount in server.PRICES.items():
+            self.assertIn(f"{kind}: {amount}", script)
+
+
+if __name__ == "__main__":
+    unittest.main()

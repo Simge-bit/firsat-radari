@@ -5,11 +5,14 @@ import csv
 import datetime
 import math
 import re
+import statistics
 from pathlib import Path
 
-from radar import comtrade, giris, model, sartlar, urunler
+from radar import comtrade, giris, model, sartlar, tarife, urunler
 
 OUT_DIR = Path(__file__).resolve().parent / "cikti"
+NOISE_SHARE = 0.01          # bir yılın değeri serinin en yükseğinin bu payından azsa eğilim hesabında yok sayılır
+RECENT_COVERAGE = 0.85      # en yeni yılın kullanılması için, bildiren ülkelerin önceki yıl ithalatındaki en az payı
 
 
 def hs6_from(gtip):
@@ -22,12 +25,15 @@ def hs6_from(gtip):
     return digits[:6]
 
 
-def build(hs6, max_countries=None):
-    """Bir ürün için skorlanmış aday ülkeler. max_countries verilmezse anahtarsız erişimde 40 ile sınırlanır."""
+def build(hs6, max_countries=None, as_of=None):
+    """Bir ürün için skorlanmış aday ülkeler. max_countries verilmezse anahtarsız erişimde 40 ile sınırlanır.
+
+    as_of verilirse rapor o yılın sonunda bilinen veriyle kurulur (geçmişe dönük sınama için).
+    """
     if max_countries is None and not comtrade.api_key():
         max_countries = 40
     names = comtrade.countries()
-    last_year = datetime.date.today().year - 1
+    last_year = as_of or datetime.date.today().year - 1
     yearly = {year: comtrade.imports_by_reporter(hs6, year) for year in range(last_year - model.WINDOW, last_year + 1)}
 
     # t0: raporlayan ülke sayısı yeterli olan en son yıl (yeni yıllar eksik gelir).
@@ -35,7 +41,18 @@ def build(hs6, max_countries=None):
     if most == 0:
         raise ValueError(f"{hs6} için Comtrade'de veri yok. Kodu kontrol et.")
     t0 = max(year for year, totals in yearly.items() if len(totals) >= 0.75 * most)
+    # Bir sonraki yılı bildiren ülke sayısı az olsa da büyük pazarların çoğu bildirmişse o yıl kullanılır:
+    # ölçü, bildiren ülkelerin önceki yılın ithalatındaki payıdır. Henüz bildirmeyen ülke kendi son yılıyla kalır.
+    newer = t0 + 1
+    if yearly.get(newer) and yearly[t0]:
+        reported = sum(value for code, (value, _) in yearly[t0].items() if code in yearly[newer])
+        if reported >= RECENT_COVERAGE * sum(value for value, _ in yearly[t0].values()):
+            t0 = newer
     window = range(t0 - model.WINDOW + 1, t0 + 1)
+    # Kod yeni sınıflandırmada kaldırıldıysa son veri yılı geride kalır; pencerenin eksik yılları ayrıca çekilir.
+    for year in window:
+        if year not in yearly:
+            yearly[year] = comtrade.imports_by_reporter(hs6, year)
 
     # Kod yakın zamanda tanımlandıysa (HS revizyonu) eski yıllarda veri olmaz ve büyüme şişer.
     # Bu durumda büyüme ve güven, 4 haneli üst pozisyonun serisinden hesaplanır.
@@ -56,6 +73,10 @@ def build(hs6, max_countries=None):
         latest = latest_year[code]
         value, weight = yearly[latest][code]
         trend_series = {year: trend[year][code][0] for year in window if code in trend[year]}
+        # Serinin en yüksek değerinin yüzde birinin altındaki yıllar veri hatası ya da numune sevkiyatıdır
+        # (378 dolardan 1,1 milyon dolara "büyüme" gibi); eğilim hesabına katılmaz.
+        floor = NOISE_SHARE * max(trend_series.values(), default=0)
+        trend_series = {year: amount for year, amount in trend_series.items() if amount >= floor}
         kappa = model.confidence(trend_series, t0)
         g = model.growth(trend_series)
         if value >= m_min and kappa >= model.KAPPA_MIN and g is not None:
@@ -70,6 +91,7 @@ def build(hs6, max_countries=None):
     candidates = candidates[:max_countries]
 
     exports = {year: comtrade.exports_by_reporter(hs6, year) for year in {row["year"] for row in candidates}}
+    duties = tarife.rates(hs6)
     for row in candidates:
         # Yeniden ihracat oranı: ülkenin aynı üründeki ihracatı / ithalatı (en fazla 1).
         row["reexport"] = min(1.0, exports[row["year"]].get(row["code"], 0) / row["imports"])
@@ -84,6 +106,12 @@ def build(hs6, max_countries=None):
         row["tr_unit_price"] = unit_price.get(comtrade.TURKIYE)
         row["tr_rank"] = 1 + sum(share > row["tr_share"] for share in shares.values()) if row["tr_share"] > 0 else None
         row["suppliers"] = len(shares)
+        row["distance_km"] = giris.distance_km(row["iso2"])
+        duty = (duties or {}).get(row["iso2"])
+        # Anlaşma olduğu bilinen ama tercihli oranı DTÖ'de bulunmayan ülkede gerçek oran belirsizdir.
+        row["tariff"] = duty and {**duty, "sta_eksik": duty["tr"] is None and duty["mfn"] > 0 and row["iso2"] in sartlar.STA}
+        row["blocked"] = row["iso2"] in sartlar.TICARET_DURDU
+        row["restrictions"] = giris.restrictions(row["iso2"], hs6)
         row["offices"] = giris.offices(row["iso2"])
         row["fairs"] = giris.fairs(row["iso2"], hs6)
         row["requirements"] = sartlar.checklist(hs6, row["iso2"])
@@ -91,10 +119,25 @@ def build(hs6, max_countries=None):
         row["rivals"] = [{"country": names.get(code, (str(code), None))[0], "iso2": names.get(code, (None, None))[1],
                           "share": share, "unit_price": unit_price.get(code)} for share, code in top]
 
+    # Yakınlık: uzaklığın logaritması (1.000 km ile 2.000 km arasındaki fark, 9.000 ile 10.000 arasındakinden önemlidir).
+    # Konumu bilinmeyen ülke ne ödüllendirilir ne cezalandırılır: ortanca değeri alır.
+    known = [-math.log(row["distance_km"]) for row in candidates if row["distance_km"]]
+    for row in candidates:
+        row["L"] = -math.log(row["distance_km"]) if row["distance_km"] else statistics.median(known or [0])
+    # Gümrük vergisi: Türkiye'ye uygulanan oran düştükçe puan artar (mutlak ölçek). Oranı bilinmeyen ya da belirsiz ülke ortancayı alır.
+    # DTÖ verisi hiç alınamadıysa faktör skora girmez; ağırlığı diğerlerine dağılır.
+    if duties:
+        clear = {row["code"]: model.tariff_score(tarife.applied(row["tariff"])) for row in candidates if row["tariff"] and not row["tariff"]["sta_eksik"]}
+        for row in candidates:
+            row["T"] = clear.get(row["code"], statistics.median(clear.values()) if clear else 0)
+
     model.adjust_growth(candidates, m_min)
+    # Ticaretin durdurulduğu ülke satış yapılabilecek bir pazar değildir: skorlanmaz, listenin sonunda gösterilir.
+    rows = model.score([row for row in candidates if not row["blocked"]])
+    rows += [{**row, "z": {}, "score": 0.0} for row in candidates if row["blocked"]]
     return {"hs6": hs6, "product": comtrade.product_name(hs6), "product_path": urunler.path(hs6),
-            "t0": t0, "skipped": skipped, "growth_basis": growth_basis, "m_min": m_min,
-            "rows": model.score(candidates)}
+            "t0": t0, "skipped": skipped, "growth_basis": growth_basis, "m_min": m_min, "tariffs": bool(duties),
+            "rows": rows}
 
 
 def main():
@@ -114,7 +157,7 @@ def main():
 
     print(f"\nÜrün {hs6} | son veri yılı {report['t0']} | {len(rows)} aday ülke"
           + (f" ({skipped} küçük pazar dökümü çekilmediği için dışarıda)" if skipped else ""))
-    print("Skor göreli bir sıralamadır; tarife ve lojistik faktörleri henüz dahil değil.\n")
+    print("Skor göreli bir sıralamadır; lojistik yalnızca uzaklıktır, gümrük vergisi yalnızca yüzdeli oranları kapsar.\n")
     print(f"{'#':>2} {'Ülke':<22}{'Skor':>5} {'İthalat (mn $)':>15} {'Büyüme':>8} {'TR payı':>8} {'Y.ihr.':>7}  Ana rakipler")
     for rank, row in enumerate(rows, 1):
         print(f"{rank:>2} {row['country'][:21]:<22}{row['score']:>5.0f} {row['imports'] / 1e6:>15,.1f} "
