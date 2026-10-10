@@ -5,22 +5,17 @@ services:
     plan: free
     buildCommand: "true"
     startCommand: python server.py
+    healthCheckPath: /robots.txt
     envVars:
+      # Veri anahtarları kurulumda sorulur; depoda tutulmaz.
       - key: COMTRADE_KEY
         sync: false
       - key: WTO_KEY
         sync: false
+      # Erişim belirteçlerini imzalayan anahtar; Render bir kez üretir ve saklar.
       - key: IHRACBUL_SECRET
         generateValue: true
-      # Üye hesapları bu dosyada durur; kalıcı disk bağlanmazsa sunucu yeniden başladığında silinir.
-      - key: IHRACBUL_DB
-        value: /var/data/uyeler.db
-      # Giriş e-postaları için posta sunucusu (ör. smtp.gmail.com ve uygulama şifresi).
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
       - key: PYTHON_VERSION
         value: 3.12.6
+# Ücretli plana geçince eklenecekler (ücretsiz planda kalıcı disk yoktur, üye hesapları yeniden başlatmada silinir):
+#   disk bağlanır ve IHRACBUL_DB=/var/data/uyeler.db verilir; giriş e-postaları için SMTP_HOST, SMTP_USER, SMTP_PASS.
