@@ -358,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
             link = f"{self._origin()}/giris?k={uyelik.login_code(email)}"
             if uyelik.send_login(email, link):
                 return self._json(200, {"gonderildi": True})
-            if DEMO:                          # gösterim modunda posta ayarlı olmayabilir; bağlantı ekranda verilir
+            if DEMO and not uyelik.mail_configured():      # posta henüz kurulmadıysa bağlantı ekranda verilir
                 return self._json(200, {"gonderildi": False, "demo_baglanti": link})
             self._json(503, {"error": "Giriş e-postası gönderilemedi. Biraz sonra tekrar dene."})
         elif path == "/api/kayit":

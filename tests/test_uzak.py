@@ -111,5 +111,51 @@ class UzakVeritabani(unittest.TestCase):
             os.environ["TURSO_TOKEN"] = TOKEN
 
 
+class Posta(unittest.TestCase):
+    """Giriş e-postası, e-posta hizmetini taklit eden yerel bir sunucuya gönderilir."""
+
+    sent = []
+
+    class FakeMail(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            good = self.headers.get("Authorization") == "Bearer posta-anahtari"
+            if good:
+                Posta.sent.append(body)
+            self.send_response(200 if good else 401)
+            self.send_header("Content-Length", "2")
+            self.end_headers()
+            self.wfile.write(b"{}")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.service = ThreadingHTTPServer(("127.0.0.1", 0), cls.FakeMail)
+        threading.Thread(target=cls.service.serve_forever, daemon=True).start()
+        os.environ.update(RESEND_API_KEY="posta-anahtari", MAIL_API=f"http://127.0.0.1:{cls.service.server_port}/emails")
+
+    @classmethod
+    def tearDownClass(cls):
+        del os.environ["RESEND_API_KEY"], os.environ["MAIL_API"]
+        cls.service.shutdown()
+
+    def test_giris_postasi_gider(self):
+        self.assertTrue(uyelik.mail_configured())
+        self.assertTrue(uyelik.send_login("alici@firma.com", "https://ihracbul.com/giris?k=abc"))
+        mail = Posta.sent[-1]
+        self.assertEqual(mail["to"], ["alici@firma.com"])
+        self.assertIn("https://ihracbul.com/giris?k=abc", mail["text"])
+        self.assertIn("ihracbul.com", mail["from"])
+
+    def test_yanlis_anahtar_basarisiz_sayilir(self):
+        os.environ["RESEND_API_KEY"] = "yanlis"
+        try:
+            self.assertFalse(uyelik.send_login("alici@firma.com", "https://ihracbul.com/giris?k=abc"))
+        finally:
+            os.environ["RESEND_API_KEY"] = "posta-anahtari"
+
+
 if __name__ == "__main__":
     unittest.main()

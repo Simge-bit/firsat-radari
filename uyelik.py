@@ -297,20 +297,40 @@ def redeem(code):
     return row[0]
 
 
+MAIL_API = "https://api.resend.com/emails"
+MAIL_FROM = "İhraçbul <giris@ihracbul.com>"
+MAIL_REPLY = "ihracbul@gmail.com"
+
+
 def mail_configured():
-    return all(os.environ.get(name) for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS"))
+    """Giriş e-postası gönderilebiliyor mu? Ücretsiz barındırma SMTP kapılarını kapattığı için asıl yol RESEND_API_KEY'dir."""
+    return bool(os.environ.get("RESEND_API_KEY")) or all(os.environ.get(name) for name in ("SMTP_HOST", "SMTP_USER", "SMTP_PASS"))
 
 
 def send_login(email, link):
     """Giriş bağlantısını e-postayla gönderir. Posta ayarlı değilse ya da gönderilemezse False."""
     if not mail_configured():
         return False
+    subject = "İhraçbul giriş bağlantın"
+    text = (f"Merhaba,\n\nİhraçbul'a giriş yapmak için aşağıdaki bağlantıya tıkla. Bağlantı {LOGIN_MINUTES} dakika boyunca geçerlidir "
+            f"ve yalnızca bir kez kullanılabilir.\n\n{link}\n\nBu isteği sen yapmadıysan bu e-postayı dikkate almayabilirsin.\n\nİhraçbul")
+    sender = os.environ.get("MAIL_FROM") or MAIL_FROM
+    if os.environ.get("RESEND_API_KEY"):
+        # E-posta hizmetine HTTPS ile gönderilir; hizmete yalnızca alıcının adresi ve bu ileti gider.
+        body = json.dumps({"from": sender, "to": [email], "subject": subject, "text": text, "reply_to": MAIL_REPLY}).encode()
+        request = urllib.request.Request(os.environ.get("MAIL_API") or MAIL_API, data=body, headers={
+            "Authorization": "Bearer " + os.environ["RESEND_API_KEY"], "Content-Type": "application/json", "User-Agent": "ihracbul/1.0"})
+        try:
+            urllib.request.urlopen(request, timeout=20).read()
+            return True
+        except (urllib.error.URLError, TimeoutError) as error:
+            print("Giriş e-postası gönderilemedi:", getattr(error, "code", ""), error, flush=True)
+            return False
     message = EmailMessage()
     message["From"] = os.environ.get("MAIL_FROM") or os.environ["SMTP_USER"]
     message["To"] = email
-    message["Subject"] = "İhraçbul giriş bağlantın"
-    message.set_content(f"Merhaba,\n\nİhraçbul'a giriş yapmak için aşağıdaki bağlantıya tıkla. Bağlantı {LOGIN_MINUTES} dakika geçerlidir "
-                        f"ve yalnızca bir kez kullanılabilir.\n\n{link}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.\n\nİhraçbul")
+    message["Subject"] = subject
+    message.set_content(text)
     try:
         with smtplib.SMTP_SSL(os.environ["SMTP_HOST"], int(os.environ.get("SMTP_PORT", 465)), context=ssl.create_default_context(), timeout=20) as server:
             server.login(os.environ["SMTP_USER"], os.environ["SMTP_PASS"])
