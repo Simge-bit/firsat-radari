@@ -263,8 +263,8 @@ class Handler(BaseHTTPRequestHandler):
             file = (WEB / url.path[len("/static/"):]).resolve()
             if file.is_file() and WEB in file.parents and file.suffix in STATIC_TYPES:
                 # Sürüm etiketiyle istenen dosya hiç değişmez sayılır; etiketsiz stil ve betik her seferinde sorulur.
-                versioned = "v" in urllib.parse.parse_qs(url.query)
-                cache = "public, max-age=31536000, immutable" if versioned else "no-cache" if file.suffix in (".css", ".js") else "public, max-age=86400"
+                tagged = "v" in urllib.parse.parse_qs(url.query)
+                cache = "public, max-age=31536000, immutable" if tagged else "no-cache" if file.suffix in (".css", ".js") else "public, max-age=86400"
                 self._send(200, STATIC_TYPES[file.suffix], file.read_bytes(), cache)
             else:
                 self._send(404, "text/plain; charset=utf-8", "Bulunamadı".encode("utf-8"))

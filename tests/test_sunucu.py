@@ -213,6 +213,13 @@ class AcikOrnek(unittest.TestCase):
         self.assertTrue(report["kilitli"])
         self.assertEqual(len(report["rows"]), 1)
 
+    def test_her_sayfa_acilir(self):
+        import urllib.request
+        for path in server.PAGES + ["/yonetim", "/giris", "/rapor/080222", "/static/app.css", "/static/yonetim.js", "/robots.txt", "/sitemap.xml"]:
+            with urllib.request.urlopen(f"http://127.0.0.1:{self.site.server_port}{path}") as response:
+                self.assertEqual(response.status, 200, path)
+                self.assertGreater(len(response.read()), 50, path)
+
     def test_acik_ornekler_sayfayla_ayni(self):
         script = (server.WEB / "app.js").read_text(encoding="utf-8")
         for code in server.OPEN_SAMPLES:
