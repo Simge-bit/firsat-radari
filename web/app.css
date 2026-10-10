@@ -60,11 +60,11 @@ body.view-pricing #head-search, body.view-legal #head-search { display: none; }
 .brand .wordmark, .pd-brand .wordmark { height: 1.3em; width: auto; aspect-ratio: 4.8567; }
 .nav { margin-left: auto; display: flex; gap: 4px; }
 .top-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.nav + .top-right { margin-left: 0; }
+.nav + .top-right { margin-left: -20px; }      /* şeridin 24px aralığı yerine menüdeki 4px aralık */
 body.view-report .top-right { margin-left: auto; }
 .top-right a { color: var(--muted); text-decoration: none; padding: 7px 12px; border-radius: 6px; font-weight: 500; white-space: nowrap; }
 .top-right a:hover { color: var(--text); background: var(--panel-2); }
-.top-right .plan { color: var(--text); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; padding: 5px 10px; }
+.top-right .plan { color: var(--text); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; padding: 5px 10px; margin-left: 8px; }
 .top-right .plan.pro { background: var(--brand); border-color: var(--brand); color: #fff; }
 .nav a { color: var(--muted); text-decoration: none; padding: 7px 12px; border-radius: 6px; font-weight: 500; }
 .nav a:hover { color: var(--text); background: var(--panel-2); }
@@ -478,7 +478,7 @@ dialog::backdrop { background: var(--veil); backdrop-filter: blur(3px); }
 .acct-info { margin: 14px 0 4px; }
 .acct-info dt { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); margin-top: 12px; }
 .acct-info dd { margin: 3px 0 0; overflow-wrap: anywhere; }
-.top-right .acct { border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 500; padding: 6px 10px; border-radius: 6px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-right .acct { border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; padding: 7px 12px; border-radius: 6px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-right .acct:hover { color: var(--text); background: var(--panel-2); }
 .co-total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--line-soft); color: var(--muted); }
 .co-total b { color: var(--text); font-size: 20px; }
@@ -519,6 +519,10 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
   .mapwrap { flex-direction: column; margin-top: 0; gap: 16px; }
   .maplegend { position: static; width: 100%; }
   .nav { display: none; }
+  .nav + .top-right { margin-left: auto; }
+  .top-right .acct { padding: 7px 8px; }
+  .top-right .plan { margin-left: 4px; }
+  .top .wrap { gap: 12px; }
   .stats, .kpis { grid-template-columns: repeat(2, 1fr); }
   .cards.three, .cards.two, .picks, .plans, .insight-grid { grid-template-columns: 1fr; }
   .features, .about { grid-template-columns: 1fr; }
