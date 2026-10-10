@@ -48,7 +48,7 @@ def product_title(hs6):
         return heading + " › " + path[1]
     return heading if any(part.startswith("Diğer") for part in path[1:]) else rest
 STATIC_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml",
-                ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json; charset=utf-8"}
+                ".png": "image/png", ".jpg": "image/jpeg", ".ttf": "font/ttf", ".json": "application/json; charset=utf-8"}
 _build_lock = threading.Lock()
 
 
