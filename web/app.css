@@ -678,3 +678,6 @@ body[data-odeme="gercek"] .co-demo, body[data-odeme="gercek"] .co-card { display
   .team .team-bio { font-size: 17px; }
   .team-mail { margin-left: 0; width: 100%; }
 }
+
+/* hidden özniteliği, grid tanımlı sayfa bölümlerinde de geçerli olsun */
+.legal[hidden] { display: none; }
