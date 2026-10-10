@@ -986,7 +986,7 @@ function renderSamples() {
       <small>${esc(sample.name)}</small><b>${num(top.score, 0)}</b>
       <span class="where">${esc(nameOf(top))}</span>
       <span class="facts">${esc(million(top.imports))} pazar · ${growthCell(top.G_raw)}</span>
-      <span class="open">Raporu aç</span></a>`);
+      <span class="open">Önizlemeyi aç</span></a>`);
     watchMotion(box.lastElementChild);
   });
   $("ornekler").hidden = !loaded.length;
