@@ -203,7 +203,7 @@ class Handler(BaseHTTPRequestHandler):
         name = product_title(match.group(1)) if match else None
         if name:
             name = escape(name if len(name) <= 70 else name[:69].rstrip() + "…", quote=True)
-            text = f"{name} için hangi ülkede talep büyüyor, Türkiye'nin payı ne, rakipler kim. Resmi ticaret verisiyle pazar raporu."
+            text = f"{name} ürününü hangi ülkelere satabileceğini, Türkiye'nin payını ve rakiplerini resmi ticaret verileriyle gösteren pazar raporu."
             html = re.sub(r"<title>.*?</title>", f"<title>{name} · {BRAND}</title>", html, count=1)
             html = re.sub(r'(<meta property="og:title" content=")[^"]*', rf"\g<1>{name} ihracat pazarları · {BRAND}", html, count=1)
             html = re.sub(r'(<meta (?:name="description"|property="og:description") content=")[^"]*', lambda m: m.group(1) + text, html)
@@ -254,8 +254,8 @@ class Handler(BaseHTTPRequestHandler):
                 body = report(gtip[:6], self._visitor(), plan)
                 self._send(200, "application/json; charset=utf-8", body if grant["pro"] or gtip[:6] in grant["reports"] else locked(body))
             except LimitReached:
-                self._json(429, {"error": f"Bugünlük {DAILY_NEW[plan]} yeni ürün sınırına ulaştın. Daha önce açılmış ürünlere bakmaya devam edebilirsin; "
-                                          + ("yarın yeniden deneyebilirsin." if plan == "pro" else f"Pro pakette günlük sınır {DAILY_NEW['pro']} ürün.")})
+                self._json(429, {"error": f"Bugünlük {DAILY_NEW[plan]} yeni ürün sınırına ulaştın. Daha önce açtığın ürünlere bakmaya devam edebilirsin. "
+                                          + ("Yarın yeniden deneyebilirsin." if plan == "pro" else f"Pro pakette günlük sınır {DAILY_NEW['pro']} üründür.")})
             except ValueError as error:
                 self._json(400, {"error": str(error)})
             except RuntimeError:

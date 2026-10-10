@@ -3,8 +3,8 @@
 const regionNames = new Intl.DisplayNames(["tr"], { type: "region" });
 const FACTORS = { L: "Türkiye'ye yakınlık", H: "Türkiye için boşluk", A: "Pazar büyüklüğü", T: "Gümrük vergisi", F: "Pazarın parçalılığı", G: "Talep büyümesi" };
 const REASONS = {
-  G: "talep hızlı büyüyor", A: "pazar büyük", T: "gümrük vergisi düşük", L: "Türkiye'ye yakın",
-  H: "Türkiye'nin payı düşük, büyüme alanı geniş", F: "tedarik tek bir ülkeye bağlı değil",
+  G: "talep hızlı büyüyor", A: "pazar büyük", T: "gümrük vergisi düşük", L: "ülke Türkiye'ye yakın",
+  H: "Türkiye'nin payını artırabileceği alan geniş", F: "pazar tek bir tedarikçiye bağlı değil",
 };
 const VISIBLE_ROWS = 20;
 const LOCKED_ROWS = 9;                    // kilitli önizlemede gösterilen boş satır sayısı
@@ -55,10 +55,15 @@ const isHub = (row) => row.reexport >= 0.5;
 const isNetExporter = (row) => row.reexport >= 0.999;
 
 // İlk üç pazarın tek cümlelik gerekçesi: en güçlü iki faktör.
-function whyText(row) {
+// Pazarın öne çıkma nedeni, cümle içinde kullanılacak biçimde (küçük harfle başlar, noktasız).
+function whyClause(row) {
   const ranked = Object.keys(REASONS).filter((key) => key in row.z).sort((a, b) => row.z[b] - row.z[a]);
   const strong = ranked.filter((key) => row.z[key] >= 0.6).slice(0, 2);
-  const text = (strong.length ? strong : ranked.slice(0, 1)).map((key) => REASONS[key]).join(" ve ");
+  return (strong.length ? strong : ranked.slice(0, 1)).map((key) => REASONS[key]).join(" ve ");
+}
+
+function whyText(row) {
+  const text = whyClause(row);
   return text.charAt(0).toLocaleUpperCase("tr-TR") + text.slice(1) + ".";
 }
 
@@ -85,7 +90,7 @@ function renderPlan() {
   $("plan").textContent = access.pro ? "Pro" : "Ücretsiz plan";
   $("plan").classList.toggle("pro", access.pro);
   const buyPro = $("buy-pro");
-  buyPro.textContent = access.pro ? "Aktif plan" : "Pro'ya geç";
+  buyPro.textContent = access.pro ? "Aktif plan" : "Satın al";
   buyPro.disabled = access.pro;
   document.querySelectorAll("[data-price]").forEach((node) => { node.textContent = num(PRICES[node.dataset.price], 0); });
   renderBilling();
@@ -99,9 +104,9 @@ function renderBilling() {
   document.querySelectorAll("[data-billing]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.billing === billing)));
   $("pro-price").textContent = num(yearly ? PRICES.perMonth : PRICES.pro, 0);
   $("pro-note").textContent = yearly
-    ? `Yılda ${num(PRICES.yearly, 0)} TL, tek ödeme. Aylık plana göre ${num(PRICES.pro * 12 - PRICES.yearly, 0)} TL daha az. İade edilmez.`
-    : `Her ay yenilenir. Yıllık planda ayda ${num(PRICES.perMonth, 0)} TL.`;
-  $("pro-cancel").textContent = yearly ? "Bir yıl boyunca sabit fiyat" : "İstediğin zaman iptal";
+    ? `Yılda bir kez ${num(PRICES.yearly, 0)} TL ödenir. Aylık plana göre ${num(PRICES.pro * 12 - PRICES.yearly, 0)} TL daha ucuzdur. Yıllık ödeme iade edilmez.`
+    : `Her ay yenilenir. Yıllık planda aylık ücret ${num(PRICES.perMonth, 0)} TL'ye düşer.`;
+  $("pro-cancel").textContent = yearly ? "Bir yıl boyunca sabit fiyat" : "İstediğin zaman iptal edebilirsin";
   $("bill-save").textContent = "%" + Math.round((1 - PRICES.yearly / (PRICES.pro * 12)) * 100) + " indirim";
   $("buy-pro").dataset.buy = billing;
 }
@@ -143,12 +148,12 @@ function entryParts(row) {
   const offices = row.offices.length
     ? `<ul class="contacts">${row.offices.map((office) => `<li><span>${esc(office.sehir)}</span><a href="mailto:${esc(office.eposta)}">${esc(office.eposta)}</a></li>`).join("")}</ul>
        <a class="ghost wide" href="${esc(importerRequestLink(row.offices[0], row, current))}">İthalatçı listesi iste</a>
-       <div class="sub">Hazır e-posta açılır: müşavirlikten bu ürünü ithal eden firmaların listesini talep eder.</div>`
+       <div class="sub">Düğmeye bastığında hazır bir e-posta açılır. Bu e-postayla müşavirlikten ürününü ithal eden firmaların listesini isteyebilirsin.</div>`
     : '<div class="sub">Bu ülkede Ticaret Bakanlığı\'nın müşavirliği ya da ataşeliği bulunmuyor.</div>';
   const fairs = row.fairs.length
     ? `<ul class="fairs">${row.fairs.map((fair) => `<li class="${fair.bitis < now ? "past" : ""}"><b>${esc(fair.ad)}</b>
         <span>${esc(fair.sehir)} · ${esc(fairDates(fair))}${fair.bitis < now ? " · geçti" : ""}</span><small>${esc(shorten(fair.konu.toLocaleLowerCase("tr-TR"), 70))}</small></li>`).join("")}</ul>`
-    : '<div class="sub">Bu ülkede ürününün sektörüyle eşleşen destekli fuar bulunamadı.</div>';
+    : '<div class="sub">Bu ülkede ürününün sektörüne uygun destekli bir fuar bulunamadı.</div>';
   const limits = row.restrictions.length ? `<div class="d-sec"><h3>Bildirilen ithalat kısıtlaması <span>DTÖ</span></h3>
       <ul class="reqs limits">${row.restrictions.map((item) => `<li><b>${esc(item.tur.map((kind) => RESTRICTION_KINDS[kind]).join(", "))}</b><p>${esc(item.metin_tr || shorten(item.metin, 260))}${item.genis ? " <em>Geniş bir ürün grubunu kapsıyor.</em>" : ""}</p>
         ${item.metin_tr ? `<small>Özgün ifade: ${esc(shorten(item.metin, 200))}</small>` : ""}
@@ -157,15 +162,15 @@ function entryParts(row) {
   const duty = dutyInfo(row);
   const duties = duty
     ? `<ul class="contacts duty"><li><span>Türkiye menşeli ürüne</span><b>${esc(duty.applied)}</b></li><li><span>Genel oran</span><b>${esc(duty.general)}</b></li></ul>
-       ${duty.basis || duty.note ? `<div class="sub">${esc([duty.basis && duty.basis.charAt(0).toLocaleUpperCase("tr-TR") + duty.basis.slice(1) + ".", duty.note].filter(Boolean).join(" "))}</div>` : ""}`
-    : '<div class="sub">Bu ülke için yüzdeli bir oran bulunamadı. Vergi kilo başına tanımlı olabilir ya da ülke oranını bildirmemiş olabilir.</div>';
+       ${duty.basis || duty.note ? `<div class="sub">${esc([duty.basis && "Bu oran " + duty.basis + " uygulanır.", duty.note].filter(Boolean).join(" "))}</div>` : ""}`
+    : '<div class="sub">Bu ülke için yüzde olarak belirlenmiş bir vergi oranı bulunamadı. Vergi kilo başına hesaplanıyor olabilir ya da ülke oranını bildirmemiş olabilir.</div>';
   return { limits, duty: `<div class="d-sec"><h3>Gümrük vergisi <span>${duty ? "DTÖ, " + duty.year : "DTÖ"}</span></h3>${duties}</div>`,
     entry: `<div class="d-sec"><h3>Ticaret Müşavirliği <span>T.C. Ticaret Bakanlığı</span></h3>${offices}</div>
     <div class="d-sec"><h3>İlgili destekli fuarlar <span>2026</span></h3>${fairs}</div>
     <div class="d-sec"><h3>Olası şartlar <span>kontrol listesi</span></h3>
       ${row.requirements.length ? `<ul class="reqs">${row.requirements.map((item) => `<li><b>${esc(item.baslik)}</b><p>${esc(item.metin)}</p>
         <a href="${esc(item.url)}" target="_blank" rel="noopener">${esc(item.kurum)} ↗</a></li>`).join("")}</ul>`
-        : '<div class="sub">Bu ülke için hazır bir kontrol listemiz yok. Şartları Ticaret Müşavirliği\'nden öğrenebilirsin.</div>'}
+        : '<div class="sub">Bu ülke için hazır bir şart listemiz bulunmuyor. Şartları Ticaret Müşavirliği\'nden öğrenebilirsin.</div>'}
       ${link ? `<a class="ghost wide" href="${esc(link)}" target="_blank" rel="noopener">Bu ürünün resmi AB şartlarını gör ↗</a>` : ""}
     </div>` };
 }
@@ -176,7 +181,12 @@ let detailTab = "ozet";
 
 // Ücretsiz planda ülke detayı kapalıdır: başlık ve tek cümlelik özet görünür, gerisi kilitlidir.
 const LOCKED_DETAIL = ["Beş yıllık ithalat grafiği ve eğilim", "Rakipler, payları ve birim fiyatları", "Gümrük vergisi ve Türkiye'ye tanınan oran",
-  "Ticaret Müşavirliği, fuarlar ve şartlar", "Neden bu sırada: altı ölçünün puanı"];
+  "Ticaret Müşavirliği, fuarlar ve şartlar", "Altı ölçünün her birinden aldığı puan"];
+
+function insightItems(row) {
+  const lines = marketInsights(row);
+  return lines.map((line) => `<li class="${lines.warnings.has(line) ? "warn" : ""}">${esc(line)}</li>`).join("");
+}
 
 function renderLockedDetail(row) {
   $("detail").innerHTML = `
@@ -206,9 +216,9 @@ function renderDetail() {
       <ul class="contacts duty">${priced.map((supplier) => `<li><span${supplier.turkiye ? ' class="tr"' : ""}>${esc(supplier.name)}</span><b>${esc(num(supplier.unit_price, 2))}</b></li>`).join("")}
         ${row.unit_price ? `<li><span>Pazar ortalaması</span><b>${esc(num(row.unit_price, 2))}</b></li>` : ""}</ul></div>` : "";
   const panels = {
-    ozet: `<div class="d-sec"><h3>Değerlendirme</h3><ul class="notes">${marketInsights(row).map((line) => `<li class="${line.startsWith("Dikkat") ? "warn" : ""}">${esc(line)}</li>`).join("")}</ul></div>
+    ozet: `<div class="d-sec"><h3>Değerlendirme</h3><ul class="notes">${insightItems(row)}</ul></div>
       <div class="d-sec"><h3>İthalat, milyon $</h3>${trendChart(row)}</div>
-      ${row.blocked ? "" : `<div class="d-sec"><h3>Neden bu sırada <span>0-100</span></h3>${factors}<div class="sub">Her ölçü aday ülkeler arasında ölçeklenir. Veri güveni: ${confidenceLabel(row.kappa).toLowerCase()}.</div></div>`}`,
+      ${row.blocked ? "" : `<div class="d-sec"><h3>Neden bu sırada <span>0-100</span></h3>${factors}<div class="sub">Her ölçü, ülkeler birbiriyle karşılaştırılarak puanlanır. Bu ülkenin veri güveni ${confidenceLabel(row.kappa).toLowerCase()} düzeydedir.</div></div>`}`,
     rakip: `<div class="d-sec"><h3>Tedarikçi payları <span>${row.year}</span></h3>${suppliers.map((supplier) => hbar(supplier.name, supplier.share, pct(supplier.share), supplier.turkiye ? "tr" : "")).join("")}</div>
       ${prices}${parts.duty}`,
     giris: `${parts.limits}${parts.entry}
@@ -253,7 +263,7 @@ function renderLockedTable() {
     ${hidden > 0 ? `<div class="paywall"><div class="paywall-card">
       <div class="big-lock">${LOCK_ICON.replace(' class="lock-ico"', "")}</div>
       <h3>${hidden} pazar daha var</h3>
-      <p>Ücretsiz planda her raporun en iyi pazarını ve skorunu görürsün. Tüm sıralama, ülke detayları ve PDF için raporu aç.</p>
+      <p>Ücretsiz planda her raporun en iyi pazarını ve skorunu görebilirsin. Bütün sıralamayı, ülke detaylarını ve PDF belgesini görmek için raporu açman gerekir.</p>
       <div class="paywall-btns">
         <button type="button" class="go" data-buy="single">Bu raporu aç · ${num(PRICES.single, 0)} TL</button>
         <button type="button" class="ghost" data-buy="yearly">Pro'ya geç · ayda ${num(PRICES.perMonth, 0)} TL'den</button>
@@ -328,7 +338,7 @@ function renderReport(report) {
       <div class="insight-grid">${insights.map((item) => `<div><h3>${item.title}</h3><p>${esc(item.text)}</p></div>`).join("")}</div>
     </section>` : `<section class="panel insights">
       <div class="panel-head"><b>Öne çıkanlar</b><span class="count">Veriden hesaplanan değerlendirme</span></div>
-      <div class="insight-grid"><button type="button" class="insight-lock" data-buy="single">${LOCK_ICON}Pazarın büyüklüğü, Türkiye'nin konumu, rakipler, fiyat ve boş alan: 8 içgörü tam raporda</button></div>
+      <div class="insight-grid"><button type="button" class="insight-lock" data-buy="single">${LOCK_ICON}Pazarın büyüklüğü, Türkiye'nin konumu, rakipler ve fiyatlarla ilgili 8 değerlendirme tam raporda yer alıyor</button></div>
     </section>`;
 
   document.title = shorten(labels.title, 50) + " · İhraçbul";
@@ -355,7 +365,7 @@ function renderReport(report) {
     ${insightPanel}
     <div class="board">
       <section class="panel">
-        <div class="panel-head"><b>Tüm pazarlar</b><span class="count">${open ? "Detay için satıra, sıralamak için başlığa tıkla" : "Ücretsiz önizleme: yalnızca en iyi pazar"}</span></div>
+        <div class="panel-head"><b>Tüm pazarlar</b><span class="count">${open ? "Detayları görmek için satıra, sıralamak için başlığa tıkla" : "Ücretsiz önizlemede yalnızca en iyi pazar gösterilir"}</span></div>
         <div id="markets"></div>
       </section>
       <aside class="panel" id="detail" aria-live="polite"></aside>
@@ -367,15 +377,15 @@ function renderReport(report) {
     <div class="panel reading">
       <h3>Raporu okurken</h3>
       <ul>
-        <li>Skor, bu ürünün aday ülkeleri arasında göreli bir sıralamadır. Farklı ürünlerin skorları birbiriyle karşılaştırılamaz.</li>
-        <li>İthalatı ${esc(million(report.m_min))} altında kalan pazarlar listeye alınmadı.</li>
-        <li>Küçük pazarlarda ve aktarma merkezlerinde büyüme oranı skora daha az yansıtılır. Tabloda görünen oran ham veridir.</li>
-        <li>${report.tariffs ? "Gümrük vergisi DTÖ'ye bildirilen yüzdeli oranlardır; kilo başına vergi, ek vergi ve kotaları kapsamaz." : "Bu raporda gümrük vergisi verisi alınamadı; skor beş ölçüyle hesaplandı."} Lojistik, Türkiye'ye kuş uçuşu uzaklıkla ölçülür; navlun fiyatı değildir. Analiz kodun ilk 6 hanesi üzerinden yapılır.</li>
-        ${group ? `<li>Bu ürün kodu yakın zamanda tanımlandığı için eski yılların verisi yok. Yıllık büyüme, bağlı olduğu ürün grubunun (${esc(group)}) ithalatından hesaplandı.</li>` : ""}
-        ${rows.some((row) => row.blocked) ? "<li>Türkiye'nin ticareti durdurduğu ülkeler skorlanmaz; listenin sonunda \"Ticaret durdu\" etiketiyle gösterilir.</li>" : ""}
-        <li>Kaynak: UN Comtrade. Talep verisi satışı garanti etmez; sertifika, dağıtım ve alıcı koşullarını ayrıca araştır.</li>
+        <li>Skor, bu ürün için ülkelerin birbirine göre sırasını gösterir. Farklı ürünlerin skorları birbiriyle karşılaştırılamaz.</li>
+        <li>İthalatı ${esc(million(report.m_min))} değerinin altında kalan pazarlar listeye alınmadı.</li>
+        <li>Küçük pazarlarda ve aktarma merkezlerinde büyüme oranı skoru daha az etkiler. Tabloda gördüğün oran ise düzeltilmemiş veridir.</li>
+        <li>${report.tariffs ? "Gümrük vergisi oranları, ülkelerin Dünya Ticaret Örgütü'ne bildirdiği yüzde oranlarıdır. Kilo başına alınan vergileri, ek vergileri ve kotaları kapsamaz." : "Bu raporda gümrük vergisi verisi alınamadığı için skor beş ölçüyle hesaplandı."} Yakınlık, ülkenin Türkiye'ye kuş uçuşu uzaklığıyla ölçülür ve navlun fiyatını göstermez. Analiz, ürün kodunun ilk 6 hanesi üzerinden yapılır.</li>
+        ${group ? `<li>Bu ürün kodu yakın zamanda tanımlandığı için eski yılların verisi bulunmuyor. Yıllık büyüme, kodun bağlı olduğu ürün grubunun (${esc(group)}) ithalatından hesaplandı.</li>` : ""}
+        ${rows.some((row) => row.blocked) ? "<li>Türkiye'nin ticareti durdurduğu ülkeler puanlanmaz ve listenin sonunda \"Ticaret durdu\" etiketiyle gösterilir.</li>" : ""}
+        <li>Ticaret verileri UN Comtrade'den alınmıştır. Talebin yüksek olması satışı garanti etmez. Sertifika, dağıtım ve alıcı koşullarını ayrıca araştırman gerekir.</li>
       </ul>
-      <p class="report-flag">Bu raporda yanlış ya da eksik bir şey mi gördün? <a href="mailto:ihracbul@gmail.com?subject=${encodeURIComponent("Rapor hatası: GTİP " + dotted(report.hs6))}&body=${encodeURIComponent("Rapor: " + location.href + "\n\nGördüğüm hata:\n")}">Bize bildir</a>, düzeltelim.</p>
+      <p class="report-flag">Bu raporda yanlış ya da eksik bir bilgi gördüysen <a href="mailto:ihracbul@gmail.com?subject=${encodeURIComponent("Rapor hatası: GTİP " + dotted(report.hs6))}&body=${encodeURIComponent("Rapor: " + location.href + "\n\nGördüğüm hata:\n")}">bize bildirebilirsin</a>.</p>
     </div>`;
   renderTable();
   renderDetail();
@@ -418,7 +428,7 @@ async function load(hs6) {
   const id = ++loadId, status = $("status");
   $("report").innerHTML = '<div class="skeleton" aria-hidden="true"><div></div><div></div><div></div><div></div></div>';
   status.className = "";
-  status.textContent = "Veri çekiliyor. Bir ürün ilk kez sorulduğunda 20-30 saniye sürebilir.";
+  status.textContent = "Veriler alınıyor. Bir ürün ilk kez arandığında bu işlem 20-30 saniye sürebilir.";
   $("go").disabled = true;
   document.body.classList.add("loading");
   try {
@@ -426,7 +436,7 @@ async function load(hs6) {
     const payload = await response.json();
     if (id !== loadId) return;
     if (!response.ok) throw new Error(payload.error || "Rapor alınamadı.");
-    if (!payload.rows.length) throw new Error("Bu ürün için yeterli büyüklükte pazar bulunamadı.");
+    if (!payload.rows.length) throw new Error("Bu ürün için yeterince büyük bir pazar bulunamadı.");
     status.textContent = "";
     renderReport(payload);
   } catch (error) {
@@ -479,8 +489,8 @@ $("lg-send").addEventListener("click", async () => {
     const payload = await response.json();
     if (!response.ok) return fail(payload.error || "Giriş bağlantısı gönderilemedi.");
     $("lg-sent-text").textContent = payload.gonderildi
-      ? `${field.value} adresine bir giriş bağlantısı gönderdik. Bağlantı 20 dakika geçerli.`
-      : "Demo sürümde e-posta gönderimi kapalı. Giriş bağlantın aşağıda.";
+      ? `${field.value} adresine bir giriş bağlantısı gönderdik. Bağlantı 20 dakika boyunca geçerlidir.`
+      : "Deneme sürümünde e-posta gönderilmiyor. Giriş bağlantını aşağıda bulabilirsin.";
     $("lg-demo").hidden = !payload.demo_baglanti;
     if (payload.demo_baglanti) $("lg-demo").href = payload.demo_baglanti;
     $("lg-send").disabled = false;
@@ -546,7 +556,7 @@ function route() {
   const known = match || legal || location.pathname === "/" || location.pathname === "/paketler";
   // Bilinmeyen adres rapor görünümünde bir hata iletisiyle karşılanır; arama kutusu üst şeritte kalır.
   const view = match || !known ? "report" : legal ? "legal" : location.pathname === "/paketler" ? "pricing" : "home";
-  document.querySelectorAll(".legal").forEach((page) => { page.hidden = !legal || page.id !== legal.id; });
+  document.querySelectorAll(".legal").forEach((page) => { page.hidden = !legal || (page.id || page.dataset.with) !== legal.id; });
   ["home", "report", "pricing", "legal"].forEach((name) => document.body.classList.toggle("view-" + name, name === view));
   // Arama formu tek bir öğedir; ana sayfada giriş bölümünde, diğer görünümlerde üst şeritte durur.
   $(view === "home" ? "hero-search" : "head-search").appendChild($("form"));
@@ -591,8 +601,8 @@ const checkout = $("checkout");
 const REAL_PAYMENT = document.body.dataset.odeme === "gercek";      // sunucuda iyzico anahtarları varsa
 const BILLING = { ad: "co-name", soyad: "co-surname", adres: "co-address", sehir: "co-city" };
 const PAY_NOTES = {
-  basarisiz: "Ödeme tamamlanmadı, kartından para çekilmedi. Yeniden deneyebilirsin.",
-  belirsiz: "Ödemenin sonucu şu an doğrulanamadı. Kartından para çekildiyse bize yaz, paketini elle tanımlayalım.",
+  basarisiz: "Ödeme tamamlanmadı ve kartından para çekilmedi. Yeniden deneyebilirsin.",
+  belirsiz: "Ödemenin sonucu şu an doğrulanamadı. Kartından para çekildiyse bize yazman yeterli, paketini biz tanımlarız.",
   tamam: "Bu ödeme daha önce işlendi. Paketini kullanmak için satın alırken yazdığın e-postayla giriş yap.",
 };
 let order = null;                         // { kind: "single" | "pro", hs6 }
@@ -608,9 +618,9 @@ function openCheckout(kind) {
   const single = kind === "single", yearly = kind === "yearly";
   $("co-title").textContent = single ? "Tek rapor" : yearly ? "Pro abonelik, yıllık" : "Pro abonelik, aylık";
   $("co-desc").textContent = single
-    ? "GTİP " + dotted(order.hs6) + " için tam rapor: tüm pazarlar, ülke detayları ve PDF."
-    : yearly ? `Tüm ürünlerde tam rapor, günde 10 ürün. Bir yıl için tek ödeme; ayda ${num(PRICES.perMonth, 0)} TL'ye gelir. Yıllık ödeme iade edilmez.`
-      : "Tüm ürünlerde tam rapor, günde 10 ürün. Her ay yenilenir, istediğin zaman iptal edebilirsin.";
+    ? "GTİP " + dotted(order.hs6) + " için tam raporu açar. Tüm pazarları, ülke detaylarını ve PDF belgesini içerir."
+    : yearly ? `Bütün ürünlerde tam raporu açar ve günde 10 yeni ürün aramana izin verir. Bir yıl için tek ödeme yapılır ve aylık ücret ${num(PRICES.perMonth, 0)} TL'ye gelir. Yıllık ödeme iade edilmez.`
+      : "Bütün ürünlerde tam raporu açar ve günde 10 yeni ürün aramana izin verir. Her ay yenilenir ve istediğin zaman iptal edebilirsin.";
   $("co-total").textContent = num(PRICES[kind], 0) + " TL" + (single ? "" : yearly ? " / yıl" : " / ay");
   $("co-pay").textContent = REAL_PAYMENT ? "Ödemeye geç: " + num(PRICES[kind], 0) + " TL" : num(PRICES[kind], 0) + " TL öde (demo)";
   $("co-pay").disabled = false;
@@ -644,8 +654,8 @@ $("co-pay").addEventListener("click", async () => {
     Object.assign(access, payload);
     saveAccess();
     $("co-done-text").textContent = (order.kind !== "single"
-      ? "Pro aboneliğin aktif. Artık tüm raporlar açık."
-      : "Bu ürünün tam raporu açıldı.") + ` Paket ${access.email} adresine tanımlandı. (Demo: para çekilmedi.)`;
+      ? "Pro aboneliğin başladı. Artık bütün raporları görebilirsin."
+      : "Bu ürünün tam raporu açıldı.") + ` Paket ${access.email} adresine tanımlandı. Bu bir deneme ödemesi olduğu için para çekilmedi.`;
     $("co-form").hidden = true;
     $("co-done").hidden = false;
     $("co-close").focus();
@@ -716,7 +726,7 @@ input.addEventListener("input", async () => {
   if (id !== searchId) return;
   suggestions = found || [];
   active = -1;
-  showSuggestions(found && !found.length && query.length >= 2 ? "Eşleşen ürün yok. Başka bir kelime dene." : "");
+  showSuggestions(found && !found.length && query.length >= 2 ? "Bu kelimeyle eşleşen bir ürün bulunamadı. Başka bir kelime deneyebilirsin." : "");
 });
 input.addEventListener("keydown", (event) => {
   if (!suggestions.length || !["ArrowDown", "ArrowUp", "Escape"].includes(event.key)) return;
@@ -747,7 +757,7 @@ async function submit(query) {
   active = -1;
   if (found && found.length === 1) return choose(found[0]);
   showSuggestions(found === null ? "Sunucuya ulaşılamadı. Sayfayı yenileyip tekrar dene."
-    : found.length ? "" : "Bu adla bir ürün bulunamadı. Daha genel bir kelime ya da GTİP kodunu dene.");
+    : found.length ? "" : "Bu adla bir ürün bulunamadı. Daha genel bir kelime yazabilir ya da GTİP kodunu deneyebilirsin.");
   input.focus();
 }
 
@@ -811,11 +821,11 @@ function drawArcs(rows) {
     const lift = Math.hypot(x - home[0], y - home[1]) * 0.16;
     const path = `M${home[0]},${home[1]} Q${(home[0] + x) / 2},${Math.min(home[1], y) - lift} ${x},${y}`;
     const delay = (index * 0.12).toFixed(2), left = x < home[0];
-    const label = index < MAP_LABELS ? `${nameOf(row)} ${num(row.score, 0)}` : "";
+    const label = index < MAP_LABELS ? nameOf(row) : "";
     return `<path id="arc${index}" class="map-arc${index >= MAP_LABELS ? " dim" : ""}" pathLength="1" d="${path}" style="animation-delay:${delay}s"/>
       <circle class="map-pulse" r="${1.5 * mark}"><animateMotion dur="${(3.2 + index * 0.35).toFixed(2)}s" begin="${delay}s" repeatCount="indefinite"><mpath href="#arc${index}"/></animateMotion></circle>
       <circle class="map-end" cx="${x}" cy="${y}" r="${2.6 * mark}"/>
-      ${label ? `<text class="map-label" x="${x + (left ? -5 : 5) * mark}" y="${place(x + (left ? -5 : 5) * mark, y, label, left)}" text-anchor="${left ? "end" : "start"}">${esc(nameOf(row))} <tspan>${num(row.score, 0)}</tspan></text>` : ""}`;
+      ${label ? `<text class="map-label" x="${x + (left ? -5 : 5) * mark}" y="${place(x + (left ? -5 : 5) * mark, y, label, left)}" text-anchor="${left ? "end" : "start"}">${esc(label)}</text>` : ""}`;
   }).join("");
   const homeLabel = document.querySelector("#worldmap .map-home-label");
   homeLabel.setAttribute("x", home[0] + 6 * mark);

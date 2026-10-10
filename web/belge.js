@@ -24,20 +24,20 @@ function summaryInsights(report) {
   const top = bySize.slice(0, 3);
   insights.push({
     title: "Pazarın büyüklüğü",
-    text: `${count} aday pazarın ${report.t0} yılı toplam ithalatı ${million(total)}. En büyük pazarlar: `
+    text: `${count} aday pazar ${report.t0} yılında toplam ${million(total)} değerinde ithalat yaptı. En büyük pazarlar `
       + top.map((row) => `${nameOf(row)} (${million(row.imports)})`).join(", ")
-      + `. Bu ${top.length} pazar toplamın ${pct(sumOf(top, (row) => row.imports) / total)} kadarını oluşturuyor.`,
+      + ` oldu. Bu ${top.length} pazar toplam ithalatın ${pct(sumOf(top, (row) => row.imports) / total)} kadarını oluşturuyor.`,
   });
 
-  const level = share >= 0.5 ? "baskın tedarikçi" : share >= 0.2 ? "güçlü bir tedarikçi"
+  const level = share >= 0.5 ? "en büyük tedarikçi" : share >= 0.2 ? "güçlü bir tedarikçi"
     : share >= 0.05 ? "orta ölçekli bir tedarikçi" : "küçük bir tedarikçi";
   const inTopThree = rows.filter((row) => row.tr_rank && row.tr_rank <= 3).length;
   const absent = rows.filter((row) => row.tr_share < NEGLIGIBLE).length;
   insights.push({
     title: "Türkiye'nin konumu",
-    text: `Türkiye bu pazarlara yaklaşık ${million(fromTurkiye)} satıyor ve toplam ithalatın ${pct(share)} kadarını karşılıyor: ${level}. `
-      + `${count} pazarın ${inTopThree} tanesinde ilk üç tedarikçi arasında; `
-      + (absent ? `${absent} tanesinde ise yok ya da payı binde birin altında.` : "pazarların tamamında satışı var."),
+    text: `Türkiye bu pazarlara yaklaşık ${million(fromTurkiye)} değerinde satış yapıyor ve toplam ithalatın ${pct(share)} kadarını karşılıyor. Bu payla ${level} konumunda. `
+      + `Türkiye ${count} pazarın ${inTopThree} tanesinde ilk üç tedarikçi arasında yer alıyor. `
+      + (absent ? `${absent} pazarda ise hiç satışı yok ya da payı binde birin altında kalıyor.` : "Pazarların tamamında satışı bulunuyor."),
   });
 
   if (fromTurkiye > 0) {
@@ -45,10 +45,10 @@ function summaryInsights(report) {
     const concentration = sumOf(main, trExport) / fromTurkiye;
     insights.push({
       title: "İhracatın dağılımı",
-      text: `Türkiye'nin bu pazarlara ihracatının ${pct(concentration)} kadarı ${main.length} ülkeye gidiyor: `
-        + main.map((row) => `${nameOf(row)} (${million(trExport(row))})`).join(", ") + ". "
-        + (concentration >= 0.6 ? "Yoğunlaşma yüksek: bu ülkelerdeki bir talep düşüşü ihracatı doğrudan etkiler."
-          : "İhracat az sayıda pazara bağımlı değil."),
+      text: `Türkiye'nin bu pazarlara yaptığı ihracatın ${pct(concentration)} kadarı ${main.length} ülkeye gidiyor. Bu ülkeler `
+        + main.map((row) => `${nameOf(row)} (${million(trExport(row))})`).join(", ") + " olarak sıralanıyor. "
+        + (concentration >= 0.6 ? "İhracat birkaç ülkede toplandığı için bu ülkelerde talep düşerse ihracat doğrudan etkilenir."
+          : "İhracat birçok ülkeye dağıldığı için tek bir pazara bağımlılık düşük."),
     });
   }
 
@@ -56,18 +56,18 @@ function summaryInsights(report) {
   const fastest = large.filter((row) => row.G_raw > 0).sort((a, b) => b.G_raw - a.G_raw).slice(0, 3);
   insights.push({
     title: "Talep eğilimi",
-    text: `${growing} pazarda ithalat büyüyor, ${count - growing} pazarda küçülüyor; ortanca yıllık değişim ${pct(median(rows.map((row) => row.G_raw)))}. `
-      + (fastest.length ? "Büyük pazarlar içinde en hızlı büyüyenler: "
-        + fastest.map((row) => `${nameOf(row)} (${pct(row.G_raw)})`).join(", ") + "." : "Büyük pazarların hiçbirinde ithalat büyümüyor."),
+    text: `İthalat ${growing} pazarda büyüyor, ${count - growing} pazarda küçülüyor. Pazarların yıllık değişimi ortalama ${pct(median(rows.map((row) => row.G_raw)))} düzeyinde. `
+      + (fastest.length ? "Büyük pazarlar arasında en hızlı büyüyenler "
+        + fastest.map((row) => `${nameOf(row)} (${pct(row.G_raw)})`).join(", ") + " oldu." : "Büyük pazarların hiçbirinde ithalat büyümüyor."),
   });
 
   const gaps = large.filter((row) => row.tr_share < 0.05).slice(0, 3);
   insights.push({
     title: "Boş alan",
     text: gaps.length
-      ? "Türkiye'nin payının %5'in altında kaldığı büyük pazarlar: "
-        + gaps.map((row) => `${nameOf(row)} (${million(row.imports)}, Türkiye payı ${pct(row.tr_share)})`).join("; ") + "."
-      : "Büyük pazarların hepsinde Türkiye'nin payı %5'in üzerinde. Büyüme, yeni pazardan çok mevcut pazarlarda pay artışından gelebilir.",
+      ? "Türkiye'nin payının %5'in altında kaldığı büyük pazarlar "
+        + gaps.map((row) => `${nameOf(row)} (${million(row.imports)}, Türkiye'nin payı ${pct(row.tr_share)})`).join(", ") + " olarak öne çıkıyor."
+      : "Türkiye'nin payı büyük pazarların hepsinde %5'in üzerinde. Bu yüzden büyüme, yeni pazarlardan çok mevcut pazarlarda payı artırarak sağlanabilir.",
   });
 
   // Rakipler her pazarın ilk beş tedarikçisinden toplanır; bu yüzden değerler alt sınırdır.
@@ -80,8 +80,8 @@ function summaryInsights(report) {
   if (leaders.length) {
     insights.push({
       title: "Rakipler",
-      text: "Aday pazarlarda Türkiye dışında öne çıkan tedarikçiler: "
-        + leaders.map(([name, value]) => `${name} (en az ${million(value)}, pay ${pct(value / total)})`).join("; ") + ".",
+      text: "Bu pazarlarda Türkiye'nin en güçlü rakipleri "
+        + leaders.map(([name, value]) => `${name} (en az ${million(value)}, payı ${pct(value / total)})`).join(", ") + " oldu.",
     });
   }
 
@@ -91,17 +91,17 @@ function summaryInsights(report) {
     const gap = median(priced.map((row) => row.tr_unit_price / row.unit_price - 1));
     insights.push({
       title: "Fiyat konumu",
-      text: `Fiyat verisi olan ${priced.length} pazarın ${below} tanesinde Türkiye'nin birim fiyatı, pazarın ortalama ithal fiyatının altında. `
-        + (Math.abs(gap) < 0.05 ? "Türkiye'nin fiyatı genelde pazar ortalamasına yakın."
-          : `Türkiye'nin fiyatı ortanca olarak pazar ortalamasının ${pct(Math.abs(gap))} ${gap < 0 ? "altında" : "üzerinde"}.`),
+      text: `Fiyat verisi bulunan ${priced.length} pazarın ${below} tanesinde Türkiye, pazar ortalamasından daha ucuza satıyor. `
+        + (Math.abs(gap) < 0.05 ? "Türkiye'nin fiyatı genel olarak pazar ortalamasına yakın."
+          : `Türkiye'nin fiyatı genel olarak pazar ortalamasının ${pct(Math.abs(gap))} ${gap < 0 ? "altında" : "üzerinde"} kalıyor.`),
     });
   }
 
   insights.push({
     title: "Öne çıkan pazarlar",
-    text: "Skora göre ilk üç pazar: "
-      + rows.slice(0, 3).map((row) => `${nameOf(row)} (skor ${num(row.score, 0)})`).join(", ") + ". "
-      + `Birinci sıradaki pazarın gerekçesi: ${whyText(rows[0]).toLocaleLowerCase("tr-TR")}`,
+    text: "Skoru en yüksek üç pazar "
+      + rows.slice(0, 3).map((row) => `${nameOf(row)} (skor ${num(row.score, 0)})`).join(", ") + " oldu. "
+      + `Birinci pazar öne çıkıyor çünkü ${whyClause(rows[0])}.`,
   });
   return insights;
 }
@@ -122,32 +122,35 @@ function trendLine(row) {
   const points = row.series.filter(([, value]) => value);
   if (points.length < 2) return "";
   const [firstYear, firstValue] = points[0], [lastYear, lastValue] = points[points.length - 1];
-  return `İthalat ${firstYear} yılında ${million(firstValue)} iken ${lastYear} yılında ${million(lastValue)} oldu; yıllık ortalama değişim ${pct(row.G_raw)}.`;
+  return `İthalat ${firstYear} yılında ${million(firstValue)} iken ${lastYear} yılında ${million(lastValue)} oldu. Yıllık ortalama değişim ${pct(row.G_raw)} olarak gerçekleşti.`;
 }
 
+// Satırlar düz metindir; uyarı olanlar lines.warnings kümesinde de tutulur (ekranda sarı gösterilir).
 function marketInsights(row) {
   const lines = [];
-  if (row.blocked) lines.push("Dikkat: Türkiye bu ülkeyle ticareti durdurdu. Pazar skorlanmadı ve sıralamaya alınmadı; güncel durumu Ticaret Bakanlığı'ndan teyit et.");
+  lines.warnings = new Set();
+  const warn = (text) => { lines.push(text); lines.warnings.add(text); };
+  if (row.blocked) warn("Türkiye bu ülkeyle ticareti durdurdu. Bu yüzden pazar puanlanmadı ve sıralamaya alınmadı. Güncel durumu Ticaret Bakanlığı'ndan öğrenebilirsin.");
   const trend = trendLine(row);
   if (trend) lines.push(trend);
 
   const suppliers = suppliersOf(row), leader = suppliers[0], hhi = 1 - row.F;
   const topShare = sumOf(suppliers.slice(0, 3), (supplier) => supplier.share);
-  lines.push(`Pazarın lideri ${leader.name} (pay ${pct(leader.share)}). İlk üç tedarikçi ithalatın ${pct(topShare)} kadarını karşılıyor: `
-    + (hhi > 0.4 ? "pazar az sayıda tedarikçide yoğunlaşmış, yeni girişi zorlaştırabilir."
-      : hhi < 0.2 ? "pazar parçalı, yeni tedarikçiye alan var." : "yoğunlaşma orta düzeyde."));
+  lines.push(`Pazarın en büyük tedarikçisi ${leader.name} (payı ${pct(leader.share)}). İlk üç tedarikçi ithalatın ${pct(topShare)} kadarını karşılıyor. `
+    + (hhi > 0.4 ? "Pazar birkaç tedarikçinin elinde olduğu için yeni bir satıcının girmesi zor olabilir."
+      : hhi < 0.2 ? "Pazarda çok sayıda tedarikçi olduğu için yeni bir satıcıya yer var." : "Pazarda rekabet orta düzeyde."));
 
   lines.push(row.tr_share < NEGLIGIBLE
-    ? "Türkiye bu pazarda görünmüyor: ithalattaki payı yok ya da binde birin altında."
-    : `Türkiye ${row.suppliers} tedarikçi arasında ${row.tr_rank}. sırada, payı ${pct(row.tr_share)}.`);
+    ? "Türkiye bu pazara satış yapmıyor ya da payı binde birin altında kalıyor."
+    : `Türkiye ${row.suppliers} tedarikçi arasında ${row.tr_rank}. sırada yer alıyor ve payı ${pct(row.tr_share)}.`);
 
   if (row.tr_unit_price && row.unit_price) {
     const gap = row.tr_unit_price / row.unit_price - 1;
-    lines.push(`Türkiye'nin birim fiyatı ${num(row.tr_unit_price, 2)} $/kg, pazar ortalaması ${num(row.unit_price, 2)} $/kg: `
-      + (Math.abs(gap) < 0.02 ? "ortalamayla aynı düzeyde." : `ortalamanın ${pct(Math.abs(gap))} ${gap < 0 ? "altında" : "üzerinde"}.`)
-      + (!leader.turkiye && leader.unit_price ? ` Lider tedarikçinin fiyatı ${num(leader.unit_price, 2)} $/kg.` : ""));
+    lines.push(`Türkiye'nin birim fiyatı ${num(row.tr_unit_price, 2)} $/kg, pazar ortalaması ise ${num(row.unit_price, 2)} $/kg. `
+      + (Math.abs(gap) < 0.02 ? "Türkiye'nin fiyatı ortalamayla aynı düzeyde." : `Türkiye'nin fiyatı ortalamanın ${pct(Math.abs(gap))} ${gap < 0 ? "altında" : "üzerinde"}.`)
+      + (!leader.turkiye && leader.unit_price ? ` En büyük tedarikçinin fiyatı ${num(leader.unit_price, 2)} $/kg.` : ""));
   } else if (row.unit_price) {
-    lines.push(`Pazarın ortalama ithal birim fiyatı ${num(row.unit_price, 2)} $/kg.`);
+    lines.push(`Bu pazarda ortalama ithalat fiyatı ${num(row.unit_price, 2)} $/kg.`);
   }
 
   const duty = dutyInfo(row);
@@ -157,12 +160,12 @@ function marketInsights(row) {
   const specific = row.restrictions.filter((item) => !item.genis);
   if (specific.length) {
     const kinds = [...new Set(specific.flatMap((item) => item.tur))].map((kind) => RESTRICTION_KINDS[kind].toLocaleLowerCase("tr-TR"));
-    lines.push(`Dikkat: bu ülke, ürün kodunu içeren bir grup için DTÖ'ye kısıtlama bildirmiş (${kinds.join(", ")}). Ürününü kapsayıp kapsamadığını sevkiyattan önce doğrula.`);
+    warn(`Bu ülke, ürününün de içinde olduğu bir ürün grubu için Dünya Ticaret Örgütü'ne kısıtlama bildirmiş (${kinds.join(", ")}). Kısıtlamanın senin ürününü kapsayıp kapsamadığını sevkiyattan önce öğrenmelisin.`);
   }
-  if (isNetExporter(row)) lines.push("Dikkat: bu ülke bu üründe ithal ettiği kadarını ya da daha fazlasını ihraç ediyor. Üretici ya da aktarma merkezi olabilir; ithalattaki artış iç talebi göstermeyebilir.");
-  else if (isHub(row)) lines.push(`Dikkat: bu ülke ithal ettiği ürünün ${pct(row.reexport)} kadarını ihraç ediyor. İthalatın bir kısmı başka pazarlara aktarılıyor olabilir.`);
-  else if (row.growth_trust < 0.5) lines.push("Dikkat: pazar küçük olduğu için birkaç sevkiyat büyüme oranını belirgin biçimde değiştirebilir.");
-  if (row.kappa < 0.7) lines.push("Dikkat: bu ülkenin verisi eksik ya da gecikmeli; rakamları temkinli oku.");
+  if (isNetExporter(row)) warn("Bu ülke, bu üründe ithal ettiği kadarını ya da daha fazlasını ihraç ediyor. Ülke üretici ya da aktarma merkezi olabilir. Bu yüzden ithalattaki artış iç talebin arttığını göstermeyebilir.");
+  else if (isHub(row)) warn(`Bu ülke ithal ettiği ürünün ${pct(row.reexport)} kadarını yeniden ihraç ediyor. İthalatın bir kısmı başka ülkelere gönderiliyor olabilir.`);
+  else if (row.growth_trust < 0.5) warn("Bu pazar küçük olduğu için birkaç sevkiyat bile büyüme oranını önemli ölçüde değiştirebilir.");
+  if (row.kappa < 0.7) warn("Bu ülkenin verileri eksik ya da gecikmeli olduğu için rakamlara dikkatle yaklaşmalısın.");
   return lines;
 }
 
@@ -176,12 +179,12 @@ function dutyInfo(row) {
   const applied = duty.tr === null ? duty.mfn : duty.tr;
   const basis = duty.tur === "anlasma" ? "ticaret anlaşması kapsamında" : duty.tur === "gsp" ? "gelişmekte olan ülkelere tanınan indirim kapsamında" : "";
   const note = duty.sta_eksik
-    ? "Türkiye ile serbest ticaret anlaşması var, ancak anlaşmalı oran DTÖ verisinde yok. Gerçek oran daha düşük olabilir."
+    ? "Bu ülkenin Türkiye ile serbest ticaret anlaşması var ancak anlaşmalı oran Dünya Ticaret Örgütü verilerinde yer almıyor. Gerçek oran daha düşük olabilir."
     : duty.tur ? "İndirimli orandan yararlanmak için menşe belgesi gerekir." : "";
   const sentence = duty.tr !== null && duty.tr < duty.mfn
-    ? `Gümrük vergisi: Türkiye menşeli ürüne ${rate(duty.tr)}, ${basis}. Genel oran ${rate(duty.mfn)}; bu fark anlaşması olmayan rakiplere karşı fiyat avantajıdır.`
-    : duty.sta_eksik ? `Gümrük vergisi: genel oran ${rate(duty.mfn)}. ${note}`
-      : applied === 0 ? "Gümrük vergisi: bu ürün ülkeye vergisiz giriyor." : `Gümrük vergisi: ${rate(applied)}. Türkiye'ye özel bir indirim görünmüyor.`;
+    ? `Türkiye'den gelen ürüne ${basis ? basis + " " : ""}${rate(duty.tr)} gümrük vergisi uygulanıyor. Genel oran ise ${rate(duty.mfn)}. Aradaki fark, anlaşması olmayan rakiplere karşı fiyat avantajı sağlar.`
+    : duty.sta_eksik ? `Genel gümrük vergisi oranı ${rate(duty.mfn)}. ${note}`
+      : applied === 0 ? "Bu ürün ülkeye gümrük vergisi ödenmeden giriyor." : `Bu ürüne ${rate(applied)} gümrük vergisi uygulanıyor. Türkiye'ye özel bir indirim bulunmuyor.`;
   return { applied: rate(applied), general: rate(duty.mfn), year: duty.yil, basis, note, sentence };
 }
 
@@ -223,19 +226,19 @@ function nextSteps(report, onScreen = true) {
   const row = report.rows[0], name = nameOf(row), now = today(), office = row.offices[0];
   const upcoming = row.fairs.find((fair) => fair.bitis >= now), anyFair = row.fairs[0];
   return [
-    { title: "Pazarı doğrula", text: `${name} skorda ilk sırada. Karar vermeden önce ilk üç pazarın detayını aç; birim fiyatı kendi fiyatınla, tedarikçi paylarını rakiplerinle karşılaştır.` },
+    { title: "Pazarı doğrula", text: `${name} en yüksek skoru aldı. Karar vermeden önce ilk üç pazarın detaylarına bak. Oradaki birim fiyatları kendi fiyatınla, tedarikçileri de kendi rakiplerinle karşılaştır.` },
     { title: "Şartları netleştir", text: row.requirements.length
-      ? `${name} için ${row.requirements.length} olası şart listelendi. Her birini ilgili kurumdan teyit et. Belge ve test süreçleri haftalar alabildiği için işe buradan başla.`
-      : `${name} için hazır bir kontrol listemiz yok. Belge ve etiket şartlarını Ticaret Müşavirliği'nden ve görüştüğün alıcı adayından öğren.` },
+      ? `${name} için ${row.requirements.length} olası şart listelendi. Her birini ilgili kurumdan doğrulaman gerekir. Belge ve test işlemleri haftalarca sürebildiği için işe buradan başlamanı öneririz.`
+      : `${name} için hazır bir şart listemiz bulunmuyor. Belge ve etiket şartlarını Ticaret Müşavirliği'nden ve görüştüğün alıcılardan öğrenebilirsin.` },
     { title: "Müşavirliğe yaz", text: office
-      ? `${office.sehir} Ticaret Müşavirliği'nden (${office.eposta}) bu ürünü ithal eden firmaların listesini iste. Hizmet ücretsizdir.${onScreen ? ' Ülke detayındaki "İthalatçı listesi iste" düğmesi hazır e-postayı açar.' : ""}`
-      : `${name} için Ticaret Bakanlığı'nın müşavirliği ya da ataşeliği yok. Bölgeye bakan en yakın müşavirliği Bakanlığın yurt dışı teşkilatı sayfasından bulabilirsin.` },
+      ? `${office.sehir} Ticaret Müşavirliği'nden (${office.eposta}) bu ürünü ithal eden firmaların listesini isteyebilirsin. Bu hizmet ücretsizdir.${onScreen ? ' Ülke detayındaki "İthalatçı listesi iste" düğmesine bastığında e-posta hazır olarak açılır.' : ""}`
+      : `Ticaret Bakanlığı'nın ${name} ülkesinde müşavirliği ya da ataşeliği bulunmuyor. Bu bölgeye bakan en yakın müşavirliği Bakanlığın yurt dışı teşkilatı sayfasından bulabilirsin.` },
     { title: "Fuarı takvime koy", text: upcoming
-      ? `${upcoming.ad} (${upcoming.sehir}, ${fairDates(upcoming)}) Ticaret Bakanlığı'nın destek listesinde. Stant açmadan önce ziyaretçi olarak gitmek, alıcıları ve rakip fiyatlarını görmenin en ucuz yoludur.`
-      : anyFair ? `Bu yılın ilgili fuarları geride kaldı (örneğin ${anyFair.ad}, ${anyFair.sehir}). Çoğu fuar her yıl yinelenir; gelecek yılın tarihini ve destek listesini takip et.`
-      : `${name} için destek listesinde ürününün sektörüyle eşleşen fuar bulunamadı. Komşu pazarlardaki sektör fuarları aynı alıcılara ulaşmanın yolu olabilir.` },
-    { title: "Devlet desteğine bak", text: `Fuar katılımı, yurt dışı pazar araştırması ve tanıtım giderleri için Ticaret Bakanlığı destekleri var. Başvuru koşullarını ve süreleri harcama yapmadan önce öğren: ${SUPPORT_URL.replace("https://", "")}` },
-    { title: "Alıcıya ulaş", text: "Bu rapor ülke seçmene yardım eder, firma adı vermez. Alıcı bulmak için müşavirliğin göndereceği liste, fuar katılımcı rehberleri ve ücretli gümrük kayıt veri tabanları kullanılır." },
+      ? `${upcoming.ad} fuarı (${upcoming.sehir}, ${fairDates(upcoming)}) Ticaret Bakanlığı'nın destek listesinde yer alıyor. Stant açmadan önce fuara ziyaretçi olarak gidersen alıcıları ve rakiplerin fiyatlarını düşük maliyetle görebilirsin.`
+      : anyFair ? `Bu yılın ilgili fuarları sona erdi (örneğin ${anyFair.ad}, ${anyFair.sehir}). Fuarların çoğu her yıl tekrarlandığı için gelecek yılın tarihlerini ve destek listesini takip edebilirsin.`
+      : `Destek listesinde ${name} için ürününün sektörüne uygun bir fuar bulunamadı. Komşu ülkelerdeki sektör fuarlarında aynı alıcılara ulaşabilirsin.` },
+    { title: "Devlet desteğine bak", text: `Ticaret Bakanlığı fuar katılımı, yurt dışı pazar araştırması ve tanıtım giderleri için destek veriyor. Harcama yapmadan önce başvuru koşullarını ve sürelerini ${SUPPORT_URL.replace("https://", "")} adresinden öğrenebilirsin.` },
+    { title: "Alıcıya ulaş", text: "Bu rapor hangi ülkeye satacağını seçmene yardımcı olur ancak firma adı vermez. Alıcı bulmak için müşavirliğin göndereceği listeden ve fuarların katılımcı rehberlerinden yararlanabilirsin." },
   ];
 }
 
@@ -284,7 +287,7 @@ function entryBlock(row) {
       : "<p><b>Ticaret Müşavirliği.</b> Bu ülkede Ticaret Bakanlığı'nın müşavirliği ya da ataşeliği bulunmuyor.</p>"}
     ${row.requirements.length ? `<p><b>Olası şartlar.</b></p><ul class="pd-list pd-reqs">${row.requirements.map((item) =>
       `<li><b>${esc(item.baslik)}.</b> ${esc(item.metin)} <span>Kaynak: ${esc(item.kurum)}, ${esc(item.url.replace(/^https?:\/\//, ""))}</span></li>`).join("")}</ul>`
-      : "<p><b>Olası şartlar.</b> Bu ülke için hazır bir kontrol listemiz yok; şartları Ticaret Müşavirliği'nden öğrenebilirsin.</p>"}
+      : "<p><b>Olası şartlar.</b> Bu ülke için hazır bir şart listemiz bulunmuyor. Şartları Ticaret Müşavirliği'nden öğrenebilirsin.</p>"}
     ${link ? `<p><b>Resmi AB şart sayfası.</b> ${esc(link)}</p>` : ""}
     ${row.restrictions.length ? `<p><b>DTÖ'ye bildirilen ithalat kısıtlaması.</b></p><ul class="pd-list pd-reqs">${row.restrictions.map((item) =>
       `<li><b>${esc(item.tur.map((kind) => RESTRICTION_KINDS[kind]).join(", "))}.</b> ${esc(item.metin_tr || shorten(item.metin, 260))}${item.belge ? ` <span>Kaynak: ${esc(item.belge.replace(/^https?:\/\//, "").slice(0, 90))}</span>` : ""}</li>`).join("")}</ul>` : ""}
@@ -369,7 +372,7 @@ function buildDocument(report) {
   <section class="pd-section">
     <div class="pd-kicker">Bölüm 7</div><h2>Yöntem ve sınırlar</h2>
     <h3>Skor nasıl hesaplanır</h3>
-    <p>${report.tariffs ? "Fırsat skoru altı ölçünün ağırlıklı toplamıdır: Türkiye'ye yakınlık (%30), Türkiye için boşluk (%25), pazar büyüklüğü (%20), gümrük vergisi (%10), pazarın parçalılığı (%10) ve talep büyümesi (%5). Ağırlıklar geçmiş yılların verisiyle sınanarak belirlenmiştir." : "Bu raporda gümrük vergisi verisi alınamadı; skor beş ölçüyle hesaplandı: Türkiye'ye yakınlık (%33), Türkiye için boşluk (%28), pazar büyüklüğü (%22), pazarın parçalılığı (%11) ve talep büyümesi (%6)."} Her ölçü aday ülkeler arasında 0-100 ölçeğine çekilir. Skor bu ürünün aday ülkeleri arasında göreli bir sıralamadır; farklı ürünlerin skorları karşılaştırılamaz.</p>
+    <p>${report.tariffs ? "Fırsat skoru altı ölçünün ağırlıklı toplamıdır. Bu ölçüler Türkiye'ye yakınlık (%30), Türkiye için boşluk (%25), pazar büyüklüğü (%20), gümrük vergisi (%10), pazarın parçalılığı (%10) ve talep büyümesidir (%5). Ağırlıklar geçmiş yılların verileriyle sınanarak belirlenmiştir." : "Bu raporda gümrük vergisi verisi alınamadığı için skor beş ölçüyle hesaplandı. Bu ölçüler Türkiye'ye yakınlık (%33), Türkiye için boşluk (%28), pazar büyüklüğü (%22), pazarın parçalılığı (%11) ve talep büyümesidir (%6)."} Her ölçü aday ülkeler arasında 0-100 ölçeğine çekilir. Skor bu ürünün aday ülkeleri arasında göreli bir sıralamadır; farklı ürünlerin skorları karşılaştırılamaz.</p>
     <h3>Bilinmesi gerekenler</h3>
     <ul class="pd-list">
       <li>Veriler ülkelerin bildirdiği resmi ithalat istatistikleridir ve gecikmeli yayımlanır. Bu raporun veri yılı ${report.t0}.</li>
