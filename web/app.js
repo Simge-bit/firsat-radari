@@ -976,6 +976,20 @@ function renderTicker() {
   $("ticker").hidden = !items;
 }
 
+// Ana sayfadaki örnek raporlar şeridi: her örnek ürünün birinci pazarı ve skoru.
+function renderSamples() {
+  const loaded = SAMPLES.filter((sample) => sample.rows);
+  $("samples").innerHTML = loaded.map((sample) => {
+    const top = sample.rows[0];
+    return `<a class="sample-card" href="/rapor/${sample.hs6}" data-hs6="${sample.hs6}">
+      <small>${esc(sample.name)}</small><b>${num(top.score, 0)}</b>
+      <span class="where">${esc(nameOf(top))}</span>
+      <span class="facts">${esc(million(top.imports))} pazar · ${growthCell(top.G_raw)}</span>
+      <span class="open">Raporu aç</span></a>`;
+  }).join("");
+  $("ornekler").hidden = !loaded.length;
+}
+
 function startRotation() {
   clearInterval(sampleTimer);
   sampleTimer = setInterval(() => {
@@ -999,6 +1013,7 @@ async function loadPreview() {
       if (!rows.length) continue;
       sample.rows = rows;
       renderTicker();
+      renderSamples();
       if (SAMPLES.filter((item) => item.rows).length === 1) { showSample(SAMPLES.indexOf(sample)); startRotation(); }
       else showSample(sampleIndex);       // noktaları güncelle
     } catch (error) { /* bu örnek atlanır */ }
@@ -1034,4 +1049,12 @@ $("theme").addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem("fr-tema", next); } catch (error) { /* depolama kapalıysa seçim yalnızca bu sayfada geçerli */ }
+});
+
+/* ---------- Ana sayfa kapanışı ---------- */
+
+$("close-price").textContent = num(PRICES.perMonth, 0);
+$("close-search").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  input.focus({ preventScroll: true });
 });

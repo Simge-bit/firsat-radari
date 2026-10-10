@@ -101,12 +101,13 @@
     </section>
 
     <section class="wrap block" id="nasil">
-      <h2>Nasıl çalışır?</h2>
-      <div class="cards three">
-        <div class="panel pad"><span class="step">1</span><h3>Ürününü yaz</h3><p>Ürününün adını yazman yeterlidir. Site, gümrük kodunu resmi tarife cetvelinden kendisi bulur.</p></div>
-        <div class="panel pad"><span class="step">2</span><h3>Pazarları karşılaştır</h3><p>Ürününü ithal eden ülkeler altı ölçüye göre puanlanır ve en uygun pazardan başlayarak sıralanır.</p></div>
-        <div class="panel pad"><span class="step">3</span><h3>Rakibini tanı</h3><p>Seçtiğin pazara hangi ülkelerin sattığını, paylarını ve ortalama fiyatlarını tek ekranda görürsün.</p></div>
-      </div>
+      <p class="kicker">Nasıl çalışır?</p>
+      <h2 class="display">Üç adımda pazarını bul.</h2>
+      <ol class="flow">
+        <li><span>1</span><h3>Ürününü yaz</h3><p>Ürününün adını yazman yeterlidir. Site, gümrük kodunu resmi tarife cetvelinden kendisi bulur.</p></li>
+        <li><span>2</span><h3>Pazarları karşılaştır</h3><p>Ürününü ithal eden ülkeler altı ölçüye göre puanlanır ve en uygun pazardan başlayarak sıralanır.</p></li>
+        <li><span>3</span><h3>Rakibini tanı</h3><p>Seçtiğin pazara hangi ülkelerin sattığını, paylarını ve ortalama fiyatlarını tek ekranda görürsün.</p></li>
+      </ol>
     </section>
 
     <section class="wrap block" id="rapor-icerigi">
@@ -137,43 +138,45 @@
       </div>
     </section>
 
-    <section class="wrap block" id="yontem">
-      <h2>Skor nasıl hesaplanıyor?</h2>
-      <div class="cards two">
-        <div class="panel pad">
-          <p>Fırsat skoru altı ölçünün ağırlıklı toplamıdır. Her ölçü ayrı hesaplanır ve raporda ayrı gösterilir. Böylece bir ülkenin neden üst sırada olduğunu her zaman görebilirsin. Ağırlıklar geçmiş yılların verileriyle sınanarak belirlendi.</p>
-          <ul class="weights">
-            <li><span>Türkiye'ye yakınlık</span><i><b style="width:30%"></b></i><em>%30</em></li>
-            <li><span>Türkiye için boşluk</span><i><b style="width:25%"></b></i><em>%25</em></li>
-            <li><span>Pazar büyüklüğü</span><i><b style="width:20%"></b></i><em>%20</em></li>
-            <li><span>Gümrük vergisi</span><i><b style="width:10%"></b></i><em>%10</em></li>
-            <li><span>Pazarın parçalılığı</span><i><b style="width:10%"></b></i><em>%10</em></li>
-            <li><span>Talep büyümesi</span><i><b style="width:5%"></b></i><em>%5</em></li>
-          </ul>
-          <p class="muted">Küçük pazarlarda ve ithal ettiğini yeniden ihraç eden ülkelerde büyüme oranı yanıltıcı olabilir. Bu durumlarda oran skora daha az yansıtılır.</p>
-        </div>
-        <div class="panel pad">
-          <h3>Kaynaklar</h3>
-          <dl class="sources">
-            <dt>Ticaret verisi</dt><dd>Ülkelerin Birleşmiş Milletler'e bildirdiği resmi gümrük istatistikleri (<a href="https://comtradeplus.un.org" target="_blank" rel="noopener">UN Comtrade</a>)</dd>
-            <dt>Ürün adları</dt><dd>2026 Türk Gümrük Tarife Cetveli (<a href="https://ticaret.gov.tr/gumruk-islemleri/mevzuat/cumhurbaskanligi-karari-bkk" target="_blank" rel="noopener">T.C. Ticaret Bakanlığı</a>)</dd>
-            <dt>Pazara giriş</dt><dd><a href="https://ticaret.gov.tr/yurtdisi-teskilati/yurt-disi-temsilciliklerimiz" target="_blank" rel="noopener">Ticaret Müşavirlikleri listesi</a> ve <a href="https://ticaret.gov.tr/ihracat/fuarlar" target="_blank" rel="noopener">2026 destekli yurt dışı fuarlar</a> (T.C. Ticaret Bakanlığı)</dd>
-          <dt>Gümrük vergisi</dt><dd>Ülkelerin bildirdiği vergi oranları ile ithalat yasak ve kısıtlamaları (<a href="https://stats.wto.org/" target="_blank" rel="noopener">Dünya Ticaret Örgütü</a>)</dd>
-          <dt>Uzaklık</dt><dd>Ülkelerin Türkiye'ye kuş uçuşu uzaklığı (<a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>)</dd>
-            <dt>Kapsam</dt><dd>Analiz, ürün kodunun bütün ülkelerde ortak olan ilk 6 hanesi üzerinden yapılır</dd>
-          </dl>
-        </div>
+    <section class="wrap block" id="ornekler" hidden>
+      <div class="split-head">
+        <div><p class="kicker">Örnek raporlar</p><h2 class="display">Hazır raporlara göz at.</h2></div>
+        <p class="section-lead">Bu dört ürünün raporu herkese açıktır. Birine tıklayarak raporun nasıl göründüğünü inceleyebilirsin.</p>
       </div>
+      <div class="samples" id="samples"></div>
+    </section>
+
+    <section class="wrap block" id="yontem">
+      <div class="split-head">
+        <div><p class="kicker">Yöntem</p><h2 class="display">Skor nasıl hesaplanıyor?</h2></div>
+        <p class="section-lead">Fırsat skoru altı ölçünün ağırlıklı toplamıdır. Her ölçü raporda ayrı gösterilir, böylece bir ülkenin neden üst sırada olduğunu her zaman görebilirsin. Ağırlıklar geçmiş yılların verileriyle sınanarak belirlendi.</p>
+      </div>
+      <ol class="measures">
+        <li><b>30</b><h3>Türkiye'ye yakınlık</h3><p>Yakın pazarlara satış yapmak daha kolaydır.</p></li>
+        <li><b>25</b><h3>Türkiye için boşluk</h3><p>Türkiye'nin payının düşük olduğu pazarlarda büyüme alanı vardır.</p></li>
+        <li><b>20</b><h3>Pazar büyüklüğü</h3><p>Ülkenin bu üründe yaptığı toplam ithalata bakılır.</p></li>
+        <li><b>10</b><h3>Gümrük vergisi</h3><p>Vergi ne kadar düşükse puan o kadar yüksek olur.</p></li>
+        <li><b>10</b><h3>Pazarın parçalılığı</h3><p>Çok tedarikçili pazara girmek daha kolaydır.</p></li>
+        <li><b>5</b><h3>Talep büyümesi</h3><p>İthalatın son beş yıldaki artış hızına bakılır.</p></li>
+      </ol>
+      <p class="sources-line"><b>Veri kaynakları:</b>
+        <a href="https://comtradeplus.un.org" target="_blank" rel="noopener">UN Comtrade</a> (ticaret verisi),
+        <a href="https://stats.wto.org/" target="_blank" rel="noopener">Dünya Ticaret Örgütü</a> (gümrük vergisi ve kısıtlamalar),
+        <a href="https://ticaret.gov.tr/gumruk-islemleri/mevzuat/cumhurbaskanligi-karari-bkk" target="_blank" rel="noopener">T.C. Ticaret Bakanlığı</a> (ürün adları, <a href="https://ticaret.gov.tr/yurtdisi-teskilati/yurt-disi-temsilciliklerimiz" target="_blank" rel="noopener">müşavirlikler</a> ve <a href="https://ticaret.gov.tr/ihracat/fuarlar" target="_blank" rel="noopener">fuarlar</a>),
+        <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> (uzaklık).
+        Analiz, ürün kodunun bütün ülkelerde ortak olan ilk 6 hanesi üzerinden yapılır. Küçük pazarlarda ve aktarma merkezlerinde büyüme oranı skoru daha az etkiler.</p>
     </section>
 
     <section class="wrap block" id="sss">
-      <h2>Sık sorulanlar</h2>
-      <div class="panel faq">
+      <div class="faq-wrap">
+      <div><p class="kicker">Sık sorulanlar</p><h2 class="display">Merak edilenler.</h2></div>
+      <div class="faq">
         <details><summary>GTİP kodumu bilmiyorum, yine de kullanabilir miyim?</summary><p>Evet, kullanabilirsin. Ürününün adını yazdığında site resmi tarife cetvelinde arama yapar ve eşleşen ürünleri listeler. Birden fazla sonuç çıkarsa kendi ürününü listeden seçersin.</p></details>
         <details><summary>Veriler ne kadar güncel?</summary><p>Resmi ticaret istatistikleri gecikmeli yayımlanır. Site, yeterli sayıda ülkenin veri bildirdiği en son yılı kullanır ve bu yılı her raporun başında gösterir.</p></details>
         <details><summary>Skor 80 çıktı, bu iyi mi?</summary><p>Skor tek başına bir not değildir. Aynı ürün için ülkelerin birbirine göre sırasını gösterir. Bu yüzden farklı ürünlerin skorlarını birbiriyle karşılaştırmak doğru olmaz.</p></details>
         <details><summary>Neden 12 haneli kodun tamamı kullanılmıyor?</summary><p>Kodun yalnızca ilk 6 hanesi bütün ülkelerde ortaktır. Sonraki haneleri her ülke kendisi belirler. Bu yüzden ülkeler ancak 6 hane üzerinden karşılaştırılabilir. Rapor, senin ürününü de içeren daha geniş bir ürün grubunu gösterir.</p></details>
         <details><summary>Üst sıradaki ülkeye kesin satış yapabilir miyim?</summary><p>Hayır, rapor satışı garanti etmez. Rapor sana talebin ve pazar yapısının ne durumda olduğunu gösterir. İlk adımı atabilmen için her pazarda Ticaret Müşavirliği iletişim bilgilerini, destekli fuarları ve olası sertifika şartlarını da verir. Şartlar genel bilgi niteliğindedir. Sevkiyattan önce ilgili kurumdan doğrulaman gerekir.</p></details>
+      </div>
       </div>
     </section>
 
@@ -193,6 +196,14 @@
             <a class="founder-link" href="/ekip" data-route>Kurucuyu tanı</a>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="wrap block" id="kapanis">
+      <div class="closing">
+        <h2>Ürününün en iyi pazarını şimdi öğren.</h2>
+        <p>Ücretsiz planda günde 3 ürün arayabilirsin. Tam rapor <span data-price="single"></span> TL, bütün ürünler için Pro paket ayda <span id="close-price"></span> TL'den başlar.</p>
+        <div class="closing-btns"><button type="button" class="go" id="close-search">Ürün ara</button><a class="ghost" href="/paketler" data-route>Paketleri gör</a></div>
       </div>
     </section>
   </div>
