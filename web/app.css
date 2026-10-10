@@ -706,9 +706,6 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .measures b::before { content: "%"; font-size: .45em; color: var(--brand-hover); margin-right: 2px; vertical-align: .55em; }
 .measures h3 { font-size: 14.5px; margin: 16px 0 4px; }
 .measures p { color: var(--muted); font-size: 13px; margin: 0; }
-.sources-line { margin: 40px 0 0; padding-top: 18px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13px; max-width: 110ch; }
-.sources-line b { color: var(--text); }
-.sources-line a { color: var(--text); }
 .faq-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 24px 72px; align-items: start; }
 .faq-wrap .faq { padding: 0; max-width: none; border-top: 1px solid var(--line); }
 .faq-wrap .faq details { border-bottom: 1px solid var(--line); }

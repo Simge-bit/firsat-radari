@@ -1058,7 +1058,7 @@ $("theme").addEventListener("click", () => {
 // Hareket yalnızca tarayıcı destekliyorsa ve kullanıcı "hareketi azalt" ayarını açmadıysa çalışır;
 // aksi halde her şey baştan görünür durur.
 const MOTION = "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const REVEALED = ".stats, .home .block > .kicker, .home .block > h2, .split-head, .flow li, .inside > *, .measures li, .sources-line, .faq-wrap > *, .about > *, .closing";
+const REVEALED = ".stats, .home .block > .kicker, .home .block > h2, .split-head, .flow li, .inside > *, .measures li, .faq-wrap > *, .about > *, .closing";
 const COUNTED = ".measures b, .sheet-score b, .sample-card b";
 
 function countUp(node) {
