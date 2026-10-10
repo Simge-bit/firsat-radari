@@ -375,7 +375,7 @@ function renderReport(report) {
         ${rows.some((row) => row.blocked) ? "<li>Türkiye'nin ticareti durdurduğu ülkeler skorlanmaz; listenin sonunda \"Ticaret durdu\" etiketiyle gösterilir.</li>" : ""}
         <li>Kaynak: UN Comtrade. Talep verisi satışı garanti etmez; sertifika, dağıtım ve alıcı koşullarını ayrıca araştır.</li>
       </ul>
-      <p class="report-flag">Bu raporda yanlış ya da eksik bir şey mi gördün? <a href="mailto:simgesolmaz0@gmail.com?subject=${encodeURIComponent("Rapor hatası: GTİP " + dotted(report.hs6))}&body=${encodeURIComponent("Rapor: " + location.href + "\n\nGördüğüm hata:\n")}">Bize bildir</a>, düzeltelim.</p>
+      <p class="report-flag">Bu raporda yanlış ya da eksik bir şey mi gördün? <a href="mailto:ihracbul@gmail.com?subject=${encodeURIComponent("Rapor hatası: GTİP " + dotted(report.hs6))}&body=${encodeURIComponent("Rapor: " + location.href + "\n\nGördüğüm hata:\n")}">Bize bildir</a>, düzeltelim.</p>
     </div>`;
   renderTable();
   renderDetail();
@@ -496,7 +496,9 @@ login.addEventListener("click", (event) => { if (event.target === login || event
 // E-postadaki bağlantıyla gelindi: kod sunucuda onaylanır, oturum açılır ve adres çubuğundaki kod silinir.
 async function finishLogin() {
   const code = new URLSearchParams(location.search).get("k") || "";
-  history.replaceState({}, "", "/");
+  // Ödeme dönüşünde "d" satın alınan raporun adresidir; yalnızca site içi adres kabul edilir.
+  const target = new URLSearchParams(location.search).get("d") || "";
+  history.replaceState({}, "", /^\/rapor\/\d{6}$/.test(target) ? target : "/");
   try {
     const response = await postJson("/api/giris-onay", { k: code });
     const payload = await response.json();
@@ -530,6 +532,7 @@ async function refreshSession() {
 /* ---------- Sayfa yönlendirme: "/" ana sayfa, "/rapor/<kod>" rapor ---------- */
 
 const LEGAL_PAGES = {
+  "/ekip": { id: "ekip-sayfa", title: "Ekip" },
   "/gizlilik": { id: "gizlilik-sayfa", title: "Gizlilik ve kişisel veriler" },
   "/kosullar": { id: "kosullar-sayfa", title: "Kullanım koşulları" },
   "/mesafeli-satis": { id: "mesafeli-sayfa", title: "Mesafeli satış sözleşmesi" },
@@ -551,6 +554,9 @@ function route() {
   if (match) return load(match[1]);
   loadId++;
   current = null;
+  const note = PAY_NOTES[new URLSearchParams(location.search).get("odeme")];
+  $("pay-note").hidden = !(view === "pricing" && note);
+  $("pay-note").textContent = note || "";
   document.title = view === "pricing" ? "Paketler · İhraçbul" : legal ? legal.title + " · İhraçbul" : TITLE;
   document.body.classList.remove("loading");
   $("go").disabled = false;
@@ -582,6 +588,13 @@ document.addEventListener("click", (event) => {
 /* ---------- Paket satın alma (demo) ---------- */
 
 const checkout = $("checkout");
+const REAL_PAYMENT = document.body.dataset.odeme === "gercek";      // sunucuda iyzico anahtarları varsa
+const BILLING = { ad: "co-name", soyad: "co-surname", adres: "co-address", sehir: "co-city" };
+const PAY_NOTES = {
+  basarisiz: "Ödeme tamamlanmadı, kartından para çekilmedi. Yeniden deneyebilirsin.",
+  belirsiz: "Ödemenin sonucu şu an doğrulanamadı. Kartından para çekildiyse bize yaz, paketini elle tanımlayalım.",
+  tamam: "Bu ödeme daha önce işlendi. Paketini kullanmak için satın alırken yazdığın e-postayla giriş yap.",
+};
 let order = null;                         // { kind: "single" | "pro", hs6 }
 
 function openCheckout(kind) {
@@ -599,7 +612,7 @@ function openCheckout(kind) {
     : yearly ? `Tüm ürünlerde tam rapor, günde 10 ürün. Bir yıl için tek ödeme; ayda ${num(PRICES.perMonth, 0)} TL'ye gelir. Yıllık ödeme iade edilmez.`
       : "Tüm ürünlerde tam rapor, günde 10 ürün. Her ay yenilenir, istediğin zaman iptal edebilirsin.";
   $("co-total").textContent = num(PRICES[kind], 0) + " TL" + (single ? "" : yearly ? " / yıl" : " / ay");
-  $("co-pay").textContent = num(PRICES[kind], 0) + " TL öde (demo)";
+  $("co-pay").textContent = REAL_PAYMENT ? "Ödemeye geç: " + num(PRICES[kind], 0) + " TL" : num(PRICES[kind], 0) + " TL öde (demo)";
   $("co-pay").disabled = false;
   $("co-email").value = access.email;
   $("co-email").readOnly = Boolean(access.email);      // giriş yapılmışsa paket o hesaba yazılır
@@ -622,9 +635,12 @@ $("co-pay").addEventListener("click", async () => {
   $("co-pay").textContent = "İşleniyor…";
   try {
     // Hak, sunucunun imzaladığı belirteçle gelir; ekrandaki rapor tam veriyle yeniden yüklenir.
-    const response = await postJson("/api/odeme", { tur: order.kind, gtip: order.hs6 || "", eposta: $("co-email").value, onay: true });
+    const billing = Object.fromEntries(Object.entries(BILLING).map(([key, id]) => [key, $(id).value.trim()]));
+    if (REAL_PAYMENT && !Object.values(billing).every(Boolean)) return fail("Fatura için ad, soyad, adres ve şehir alanlarını doldur.");
+    const response = await postJson("/api/odeme", { tur: order.kind, gtip: order.hs6 || "", eposta: $("co-email").value, onay: true, ...billing });
     const payload = await response.json();
     if (!response.ok) return fail(payload.error || "Ödeme tamamlanamadı. Tekrar dene.");
+    if (payload.odeme_url) return location.assign(payload.odeme_url);      // iyzico'nun ödeme sayfası
     Object.assign(access, payload);
     saveAccess();
     $("co-done-text").textContent = (order.kind !== "single"

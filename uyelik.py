@@ -30,6 +30,8 @@ def _db():
         CREATE TABLE IF NOT EXISTS giris_kodlari (kod TEXT PRIMARY KEY, eposta TEXT NOT NULL, bitis REAL NOT NULL, kullanildi INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS satin_almalar (id INTEGER PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
                                                  zaman REAL NOT NULL, saglayici TEXT NOT NULL, referans TEXT);
+        CREATE TABLE IF NOT EXISTS siparisler (id TEXT PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
+                                              zaman REAL NOT NULL, belirtec TEXT, odendi INTEGER NOT NULL DEFAULT 0);
     """)
     return connection
 
@@ -64,6 +66,38 @@ def record_purchase(email, kind, hs6, amount, provider, reference=None):
         db.execute("INSERT INTO satin_almalar (eposta, tur, urun, tutar, zaman, saglayici, referans) VALUES (?, ?, ?, ?, ?, ?, ?)",
                    (email, kind, hs6, amount, now, provider, reference))
     return grants(email)
+
+
+def open_order(email, kind, hs6, amount):
+    """Ödeme bekleyen bir sipariş açar ve numarasını döner. Hak, ödeme onaylanınca close_order ile yazılır."""
+    order_id = secrets.token_hex(12)
+    with _db() as db:
+        db.execute("INSERT INTO siparisler (id, eposta, tur, urun, tutar, zaman) VALUES (?, ?, ?, ?, ?, ?)", (order_id, email, kind, hs6, amount, time.time()))
+    return order_id
+
+
+def tag_order(order_id, token):
+    """Ödeme kuruluşunun siparişe verdiği belirteci kaydeder; dönüşte sipariş bu belirteçle bulunur."""
+    with _db() as db:
+        db.execute("UPDATE siparisler SET belirtec = ? WHERE id = ?", (token, order_id))
+
+
+def find_order(token):
+    """Belirtece ait sipariş: {"id", "email", "kind", "hs6", "amount", "paid"}; yoksa None."""
+    with _db() as db:
+        row = db.execute("SELECT id, eposta, tur, urun, tutar, odendi FROM siparisler WHERE belirtec = ?", (token or "",)).fetchone()
+    return dict(zip(("id", "email", "kind", "hs6", "amount", "paid"), row)) if row else None
+
+
+def close_order(order_id, provider, reference):
+    """Ödenmiş siparişin hakkını yazar. Aynı sipariş ikinci kez gelirse hak yeniden yazılmaz ve False döner."""
+    with _db() as db:
+        claimed = db.execute("UPDATE siparisler SET odendi = 1 WHERE id = ? AND odendi = 0", (order_id,)).rowcount
+        row = db.execute("SELECT eposta, tur, urun, tutar FROM siparisler WHERE id = ?", (order_id,)).fetchone()
+    if not claimed:
+        return False
+    record_purchase(row[0], row[1], row[2], row[3], provider, reference)
+    return True
 
 
 def clear_demo(email):

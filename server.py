@@ -17,6 +17,7 @@ from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import odeme
 import rapor
 import uyelik
 from radar import comtrade, doviz, urunler
@@ -27,10 +28,10 @@ PORT = 8765
 WEB = Path(__file__).resolve().parent / "web"
 READY = Path(__file__).resolve().parent / "data" / "hazir"
 ROBOTS = "User-agent: *\nDisallow: /api/\n"      # tarayıcı robotlar veri kotasını tüketmesin
-PAGES = ["/", "/paketler", "/gizlilik", "/kosullar", "/mesafeli-satis", "/iade"]
+PAGES = ["/", "/paketler", "/ekip", "/gizlilik", "/kosullar", "/mesafeli-satis", "/iade"]
 PRICES = {"single": 490, "pro": 999, "yearly": 9000}       # TL; web/app.js içindeki PRICES ile aynı olmalı
-# Gösterim modu: gerçek ödeme kuruluşu bağlanana kadar ödeme para almadan onaylanır.
-DEMO = not os.environ.get("IYZICO_API_KEY")
+# Gösterim modu: iyzico anahtarları girilene kadar ödeme para almadan onaylanır.
+DEMO = not odeme.configured()
 LOGIN_PER_HOUR = {"eposta": 5, "ip": 30}     # bir e-postaya ve bir internet adresinden saatte en çok bu kadar giriş bağlantısı
 _login_tries = {}
 
@@ -47,7 +48,7 @@ def product_title(hs6):
         return heading + " › " + path[1]
     return heading if any(part.startswith("Diğer") for part in path[1:]) else rest
 STATIC_TYPES = {".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml",
-                ".png": "image/png", ".json": "application/json; charset=utf-8"}
+                ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json; charset=utf-8"}
 _build_lock = threading.Lock()
 
 
@@ -195,6 +196,8 @@ class Handler(BaseHTTPRequestHandler):
         # Paylaşım görseli tam adres ister; alan adı istekten alınır, böylece her adreste doğru çıkar.
         origin = self._origin()
         html = (WEB / "index.html").read_text(encoding="utf-8").replace('content="/static/og.png"', f'content="{origin}/static/og.png"')
+        if not DEMO:                          # ödeme penceresi gösterim yerine fatura alanlarını gösterir
+            html = html.replace("<body", '<body data-odeme="gercek"', 1)
         # Rapor bağlantısı paylaşıldığında önizlemede ürünün adı görünsün.
         match = re.fullmatch(r"/rapor/(\d{6})/?", urllib.parse.urlparse(self.path).path)
         name = product_title(match.group(1)) if match else None
@@ -271,10 +274,36 @@ class Handler(BaseHTTPRequestHandler):
 
     do_HEAD = do_GET
 
+    def _redirect(self, location):
+        self.send_response(303)
+        self.send_header("Location", location)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _payment_return(self, form):
+        """iyzico alıcıyı ödeme sonrası buraya gönderir. Sonuç iyzico'ya sorulur; ödendiyse hak yazılır ve oturum açılır."""
+        token = (urllib.parse.parse_qs(form).get("token") or [""])[0]
+        order = uyelik.find_order(token) if not DEMO else None
+        if not order:
+            return self._redirect("/paketler?odeme=basarisiz")
+        try:
+            outcome = odeme.result(token, order["id"])
+        except odeme.PaymentError:
+            traceback.print_exc()
+            return self._redirect("/paketler?odeme=belirsiz")
+        if not outcome["odendi"] or outcome["tutar"] < order["amount"]:
+            return self._redirect("/paketler?odeme=basarisiz")
+        if not uyelik.close_order(order["id"], "iyzico", outcome["referans"]):
+            return self._redirect("/paketler?odeme=tamam")        # sayfa yenilendi: hak zaten yazıldı, yeni oturum açılmaz
+        target = f"/rapor/{order['hs6']}" if order["hs6"] else "/"
+        self._redirect(f"/giris?k={uyelik.login_code(order['email'])}&d={urllib.parse.quote(target, safe='')}")
+
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
         try:
             size = int(self.headers.get("Content-Length") or 0)
+            if path == "/odeme-sonuc":
+                return self._payment_return(self.rfile.read(size).decode("utf-8", "replace") if 0 < size <= 4096 else "")
             data = json.loads(self.rfile.read(size).decode("utf-8")) if 0 < size <= 4096 else {}
             if not isinstance(data, dict):
                 raise ValueError
@@ -308,8 +337,18 @@ class Handler(BaseHTTPRequestHandler):
             if data.get("onay") is not True:
                 return self._json(400, {"error": "Devam etmek için mesafeli satış sözleşmesini ve iade koşullarını onayla."})
             if not DEMO:
-                # Gerçek ödeme: burada ödeme kuruluşunun onayı beklenecek; onay gelmeden hak yazılmaz.
-                return self._json(501, {"error": "Ödeme altyapısı henüz bağlanmadı."})
+                # Gerçek ödeme: alıcı iyzico'nun sayfasına gider; hak, dönüşte ödeme doğrulanınca yazılır (_payment_return).
+                buyer = {key: " ".join(str(data.get(key) or "").split())[:limit] for key, limit in (("ad", 60), ("soyad", 60), ("adres", 200), ("sehir", 40))}
+                if not all(buyer.values()):
+                    return self._json(400, {"error": "Fatura için ad, soyad, adres ve şehir alanlarını doldur."})
+                order_id = uyelik.open_order(email, kind, code if kind == "single" else None, PRICES[kind])
+                try:
+                    page, token = odeme.start(order_id, kind, PRICES[kind], email, buyer, self._visitor(), self._origin() + "/odeme-sonuc")
+                except odeme.PaymentError:
+                    traceback.print_exc()
+                    return self._json(502, {"error": "Ödeme sayfası şu an açılamıyor. Biraz sonra tekrar dene."})
+                uyelik.tag_order(order_id, token)
+                return self._json(200, {"odeme_url": page})
             uyelik.record_purchase(email, kind, code if kind == "single" else None, PRICES[kind], "demo")
             self._json(200, session(email))
         elif path == "/api/demo-sifirla":
