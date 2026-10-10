@@ -245,6 +245,32 @@ def close_order(order_id, provider, reference):
     return True
 
 
+def overview():
+    """Yönetim paneli için tüm üyeler ve satın almalar, en yeniden eskiye."""
+    with _db() as db:
+        members = list(db.execute("SELECT eposta, ad, firma, kayit, pro_bitis, raporlar, sifre IS NOT NULL FROM uyeler ORDER BY kayit DESC LIMIT 1000"))
+        purchases = list(db.execute("SELECT eposta, tur, urun, tutar, zaman, saglayici FROM satin_almalar ORDER BY zaman DESC LIMIT 1000"))
+    now = time.time()
+    return {
+        "uyeler": [{"eposta": row[0], "ad": row[1] or "", "firma": row[2] or "", "kayit": row[3], "pro_bitis": row[4] if row[4] > now else 0,
+                    "raporlar": json.loads(row[5]), "sifre_var": bool(row[6])} for row in members],
+        "satin_almalar": [dict(zip(("eposta", "tur", "urun", "tutar", "zaman", "saglayici"), row)) for row in purchases],
+    }
+
+
+def end_pro(email):
+    """Üyenin Pro süresini hemen bitirir; açtığı tek raporlar durur."""
+    with _db() as db:
+        db.execute("UPDATE uyeler SET pro_bitis = 0 WHERE eposta = ?", (email,))
+
+
+def delete_member(email):
+    """Üyeyi ve giriş kodlarını siler. Satın alma kayıtları yasal saklama için durur."""
+    with _db() as db:
+        db.execute("DELETE FROM uyeler WHERE eposta = ?", (email,))
+        db.execute("DELETE FROM giris_kodlari WHERE eposta = ?", (email,))
+
+
 def clear_demo(email):
     """Gösterim ödemesiyle açılan hakları siler (yalnızca gösterim modunda çağrılır)."""
     with _db() as db:

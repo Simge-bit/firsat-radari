@@ -145,6 +145,45 @@ class Hesap(unittest.TestCase):
         self.assertEqual((server.session("oturum@firma.com")["ad"], server.session("oturum@firma.com")["firma"]), ("Can Demir", "Demir Gıda"))
 
 
+
+
+class Yonetim(unittest.TestCase):
+    def setUp(self):
+        os.environ["ADMIN_PASSWORD"] = "yonetim-sifresi"
+
+    def tearDown(self):
+        os.environ.pop("ADMIN_PASSWORD", None)
+
+    def test_yonetim_belirteci_gecerli(self):
+        self.assertTrue(server.is_admin(server.admin_token()))
+
+    def test_uye_belirteci_yonetici_sayilmaz(self):
+        self.assertFalse(server.is_admin(server.sign({"email": "a@b.com", "pro": True, "pro_until": time.time() + 60, "reports": []})))
+        self.assertFalse(server.is_admin(""))
+        self.assertFalse(server.is_admin("uydurma.belirtec"))
+
+    def test_suresi_dolan_oturum_kapanir(self):
+        self.assertFalse(server.is_admin(server.sign({"yonetici": True, "bitis": time.time() - 1})))
+
+    def test_sifre_tanimli_degilse_panel_kapali(self):
+        token = server.admin_token()
+        del os.environ["ADMIN_PASSWORD"]
+        self.assertFalse(server.is_admin(token))
+
+    def test_ozet_sifre_ozeti_icermez(self):
+        uyelik.register("panel@firma.com", "Panel Üyesi", "", "panel-sifre-1")
+        view = server.admin_view()
+        member = next(item for item in view["uyeler"] if item["eposta"] == "panel@firma.com")
+        self.assertEqual(set(member), {"eposta", "ad", "firma", "kayit", "pro_bitis", "raporlar", "sifre_var"})
+        self.assertNotIn("$", json.dumps(view["uyeler"]))
+
+    def test_pro_bitirme_ve_silme(self):
+        uyelik.record_purchase("biten@firma.com", "yearly", None, 0, "yonetim")
+        uyelik.end_pro("biten@firma.com")
+        self.assertFalse(uyelik.grants("biten@firma.com")["pro"])
+        uyelik.delete_member("biten@firma.com")
+        self.assertNotIn("biten@firma.com", [item["eposta"] for item in uyelik.overview()["uyeler"]])
+
+
 if __name__ == "__main__":
     unittest.main()
-

@@ -20,5 +20,6 @@ services:
 # Render panelinden eklenenler (depoda tutulmaz):
 #   TURSO_URL, TURSO_TOKEN: üyelerin durduğu kalıcı veritabanı. Verilmezse üyeler yerel dosyada durur ve her yeniden başlatmada silinir.
 #   SMTP_HOST, SMTP_USER, SMTP_PASS, MAIL_FROM: giriş e-postaları.
+#   ADMIN_PASSWORD: /yonetim panelinin şifresi. Verilmezse panel kapalıdır.
 # Gerçek ödeme için Render panelinden eklenir: IYZICO_API_KEY, IYZICO_SECRET_KEY, IYZICO_BASE
 #   (deneme: https://sandbox-api.iyzipay.com, gerçek: https://api.iyzipay.com). Anahtarlar yokken ödeme gösterim modunda kalır.

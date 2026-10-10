@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Yönetim · İhraçbul</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("fr-tema") || "dark"; } catch (error) { document.documentElement.dataset.theme = "dark"; }</script>
+<link rel="stylesheet" href="/static/app.css">
+<style>
+  body { min-height: 100vh; }
+  .adm-top { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .adm-top b { font-size: 16px; }
+  .adm-top span { color: var(--muted); }
+  .adm-top .ghost { margin-left: auto; height: 34px; padding: 0 14px; border-radius: 6px; }
+  .adm-login { max-width: 380px; margin: 14vh auto 0; }
+  .adm-login h1 { font-size: 26px; margin: 0 0 6px; }
+  .adm-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 24px 0; }
+  .adm-cards div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .adm-cards span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+  .adm-cards b { display: block; font-size: 26px; margin-top: 6px; }
+  .adm-cards small { color: var(--muted); }
+  .adm-state { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .adm-state span { border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: var(--muted); }
+  .adm-state .bad { border-color: var(--stop); color: var(--stop); }
+  .adm-state .ok { border-color: var(--up); color: var(--up); }
+  h2 { margin: 32px 0 12px; }
+  .adm-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .adm-table th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .adm-table td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: anywhere; }
+  .adm-table tr:last-child td { border-bottom: 0; }
+  .adm-table small { display: block; color: var(--muted); }
+  .adm-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .adm-acts button { height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); background: none; font-size: 12.5px; }
+  .adm-acts button:hover { background: var(--panel-2); }
+  .adm-acts .danger { color: var(--stop); }
+  .adm-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 12px; }
+  .adm-add .co-field { margin: 0; flex: 1; min-width: 220px; }
+  .adm-add .go { height: 42px; padding: 0 18px; border-radius: 7px; }
+  .adm-empty { color: var(--muted); padding: 18px 14px; }
+  .scroll-x { overflow-x: auto; }
+  @media (max-width: 800px) { .adm-cards { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="adm-login" id="login">
+    <h1>Yönetim paneli</h1>
+    <p class="muted">Bu sayfa yalnızca site yöneticisi içindir.</p>
+    <form id="login-form">
+      <label class="co-field" for="pass">Yönetim şifresi<input id="pass" type="password" autocomplete="current-password" required></label>
+      <p class="co-error" id="login-error" role="alert" hidden></p>
+      <button class="go wide" style="margin-top:18px">Giriş yap</button>
+    </form>
+  </section>
+
+  <section id="panel" hidden>
+    <div class="adm-top"><b>İhraçbul yönetim</b><span id="stamp"></span><button type="button" class="ghost" id="logout">Çıkış yap</button></div>
+    <div class="adm-cards" id="cards"></div>
+    <div class="adm-state" id="state"></div>
+
+    <h2>Üyeler</h2>
+    <form class="adm-add" id="grant">
+      <label class="co-field" for="g-email">Bir e-posta adresine paket tanımla<input id="g-email" type="email" placeholder="ornek@firma.com" required></label>
+      <button class="go" data-islem="pro-ay">1 ay Pro ver</button>
+      <button class="go" data-islem="pro-yil">1 yıl Pro ver</button>
+    </form>
+    <p class="co-error" id="panel-error" role="alert" hidden></p>
+    <div class="scroll-x"><table class="adm-table"><thead><tr><th>Üye</th><th>Kayıt</th><th>Paket</th><th>İşlem</th></tr></thead><tbody id="members"></tbody></table></div>
+
+    <h2>Satın almalar</h2>
+    <div class="scroll-x"><table class="adm-table"><thead><tr><th>Tarih</th><th>Üye</th><th>Paket</th><th>Tutar</th><th>Kaynak</th></tr></thead><tbody id="purchases"></tbody></table></div>
+    <p class="muted" style="margin:24px 0 48px">Listeler en yeni 1.000 kaydı gösterir.</p>
+  </section>
+</div>
+<script src="/static/yonetim.js"></script>
+</body>
+</html>

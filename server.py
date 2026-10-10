@@ -32,7 +32,8 @@ PAGES = ["/", "/paketler", "/ekip", "/kayit", "/gizlilik", "/kosullar", "/mesafe
 PRICES = {"single": 490, "pro": 999, "yearly": 9000}       # TL; web/app.js içindeki PRICES ile aynı olmalı
 # Gösterim modu: iyzico anahtarları girilene kadar ödeme para almadan onaylanır.
 DEMO = not odeme.configured()
-LOGIN_PER_HOUR = {"eposta": 5, "ip": 30, "sifre": 10, "kayit": 10}
+LOGIN_PER_HOUR = {"eposta": 5, "ip": 30, "sifre": 10, "kayit": 10, "yonetim": 8}
+ADMIN_HOURS = 12                            # yönetim oturumu bu kadar saat sonra kapanır
 PASSWORD_MIN = 8     # bir e-postaya ve bir internet adresinden saatte en çok bu kadar giriş bağlantısı
 _login_tries = {}
 
@@ -113,6 +114,29 @@ def session(email):
     """Üyenin güncel haklarını taşıyan imzalı belirteç ve tarayıcıya gösterilecek özet."""
     grant = uyelik.grants(email)
     return {"token": sign(grant), **grant, **uyelik.profile(email)}
+
+
+def admin_token():
+    return sign({"yonetici": True, "bitis": time.time() + ADMIN_HOURS * 3600})
+
+
+def is_admin(token):
+    """Belirteç geçerli bir yönetim oturumu mu? Panel, ADMIN_PASSWORD ortam değişkeni verilmemişse tümüyle kapalıdır."""
+    body, _, mark = (token or "").partition(".")
+    if not os.environ.get("ADMIN_PASSWORD") or not body or not hmac.compare_digest(mark, hmac.new(_secret(), body.encode(), hashlib.sha256).hexdigest()):
+        return False
+    try:
+        grant = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    except ValueError:
+        return False
+    return grant.get("yonetici") is True and grant.get("bitis", 0) > time.time()
+
+
+def admin_view():
+    """Yönetim panelinin gösterdiği her şey: üyeler, satın almalar ve sitenin durumu."""
+    return {**uyelik.overview(), "durum": {
+        "odeme": "deneme" if DEMO else "gercek", "kalici": uyelik.persistent(), "eposta": uyelik.mail_configured(),
+        "veri_istegi": comtrade.calls_today(), "veri_siniri": comtrade.DAILY_BUDGET}}
 
 
 def throttled(*keys):
@@ -272,6 +296,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Rapor hazırlanırken beklenmeyen bir hata oluştu."})
         elif url.path == "/giris":
             self._page(200)
+        elif url.path == "/yonetim":
+            # Panel ayrı bir sayfadır; verisi yalnızca yönetim şifresiyle açılan oturuma gelir.
+            self._send(200, "text/html; charset=utf-8", (WEB / "yonetim.html").read_bytes())
         elif url.path.startswith("/api/"):
             self._json(404, {"error": "Bulunamadı"})
         else:
@@ -367,6 +394,37 @@ class Handler(BaseHTTPRequestHandler):
             clean = lambda key: " ".join(str(data[key] or "").split())[:80] if key in data else None
             uyelik.update_profile(email, clean("ad"), clean("firma"), password or None)
             self._json(200, session(email))
+        elif path == "/api/yonetim/giris":
+            expected = os.environ.get("ADMIN_PASSWORD") or ""
+            if not expected:
+                return self._json(404, {"error": "Bulunamadı"})
+            if throttled(("yonetim", self._visitor())):
+                return self._json(429, {"error": "Çok fazla deneme yapıldı. Bir saat sonra tekrar dene."})
+            if not hmac.compare_digest(str(data.get("sifre") or "").encode(), expected.encode()):
+                return self._json(401, {"error": "Şifre hatalı."})
+            self._json(200, {"t": admin_token(), **admin_view()})
+        elif path == "/api/yonetim":
+            if not is_admin(str(data.get("t") or "")):
+                return self._json(401, {"error": "Yönetim oturumu kapalı. Yeniden giriş yap."})
+            action, email = data.get("islem"), uyelik.normalize(data.get("eposta"))
+            code = re.sub(r"\D", "", str(data.get("gtip") or ""))[:6]
+            if action in ("pro-ay", "pro-yil", "pro-bitir", "rapor", "sil") and not email:
+                return self._json(400, {"error": "Geçerli bir e-posta adresi yaz."})
+            if action == "pro-ay":
+                uyelik.record_purchase(email, "pro", None, 0, "yonetim")
+            elif action == "pro-yil":
+                uyelik.record_purchase(email, "yearly", None, 0, "yonetim")
+            elif action == "pro-bitir":
+                uyelik.end_pro(email)
+            elif action == "rapor":
+                if len(code) != 6:
+                    return self._json(400, {"error": "Rapor açmak için 6 haneli ürün kodunu yaz."})
+                uyelik.record_purchase(email, "single", code, 0, "yonetim")
+            elif action == "sil":
+                uyelik.delete_member(email)
+            elif action != "liste":
+                return self._json(400, {"error": "Geçersiz istek."})
+            self._json(200, admin_view())
         elif path == "/api/giris-onay":
             email = uyelik.redeem(str(data.get("k") or ""))
             if not email:
