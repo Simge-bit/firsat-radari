@@ -311,9 +311,11 @@ function renderReport(report) {
   const labels = path ? productLabels(path) : { title: report.product || dotted(report.hs6), sub: "" };
   const open = !report.kilitli, count = report.pazar_sayisi || rows.length;
   // Kilitli raporda diğer pazarların verisi gelmez; toplamları sunucu hesaplar.
-  const total = report.ozet ? report.ozet.toplam : rows.reduce((sum, row) => sum + row.imports, 0);
-  const fromTurkiye = report.ozet ? report.ozet.turkiye : rows.reduce((sum, row) => sum + row.imports * row.tr_share, 0);
+  // Toplamlar yalnızca aday pazarları sayar: ticaretin durduğu ülkeler listede görünür ama toplama girmez.
   const tradable = rows.filter((row) => !row.blocked);
+  const total = report.ozet ? report.ozet.toplam : tradable.reduce((sum, row) => sum + row.imports, 0);
+  const fromTurkiye = report.ozet ? report.ozet.turkiye : tradable.reduce((sum, row) => sum + row.imports * row.tr_share, 0);
+  const candidates = report.ozet ? report.ozet.aday || count : tradable.length;
   const biggest = tradable.reduce((a, b) => (b.imports > a.imports ? b : a));
   const fastest = tradable.reduce((a, b) => (b.G > a.G ? b : a));
   const group = report.growth_basis ? report.growth_basis.slice(0, 2) + "." + report.growth_basis.slice(2) : "";
@@ -355,7 +357,7 @@ function renderReport(report) {
       </div>
     </div>
     <div class="kpis">
-      <div><span>Aday pazarların ithalatı</span><b>${esc(million(total))}</b><small>${count} ülke toplamı</small></div>
+      <div><span>Aday pazarların ithalatı</span><b>${esc(million(total))}</b><small>${candidates} aday pazarın toplamı</small></div>
       <div><span>Türkiye'nin payı</span><b>${esc(pct(total ? fromTurkiye / total : 0))}</b><small>${esc(million(fromTurkiye))} ihracat</small></div>
       ${open ? `<div><span>En büyük pazar</span><b>${esc(nameOf(biggest))}</b><small>${esc(million(biggest.imports))}</small></div>
       <div><span>En güçlü büyüme</span><b>${esc(nameOf(fastest))}</b><small>yılda ${esc(pct(fastest.G_raw))}</small></div>`

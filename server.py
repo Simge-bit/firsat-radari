@@ -170,8 +170,11 @@ def locked(body):
     rows = full["rows"]
     first = {key: rows[0][key] for key in LOCKED_ROW}
     first.update(restrictions=[])
+    # Toplamlar yalnızca aday pazarları sayar; Türkiye'nin ticareti durdurduğu ülkeler listede durur ama toplama girmez.
+    open_rows = [row for row in rows if not row.get("blocked")]
     return json.dumps({**{key: value for key, value in full.items() if key != "rows"}, "kilitli": True, "pazar_sayisi": len(rows),
-                       "ozet": {"toplam": sum(row["imports"] for row in rows), "turkiye": sum(row["imports"] * row["tr_share"] for row in rows)},
+                       "ozet": {"toplam": sum(row["imports"] for row in open_rows), "turkiye": sum(row["imports"] * row["tr_share"] for row in open_rows),
+                                "aday": len(open_rows)},
                        "rows": [first]}).encode("utf-8")
 
 

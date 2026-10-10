@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
   --bg: #0b0c0f; --panel: #13151a; --panel-2: #191c22; --line: #262a32; --line-soft: #1e2128;
-  --text: #e8eaed; --muted: #8d939e; --faint: #5c626d;
+  --text: #e8eaed; --muted: #8d939e; --faint: #6f7682;
   --brand: #e30a17; --brand-hover: #ff2633;
   --up: #22c58b; --down: #ff5a64; --bar: #c9ced6; --bar-dim: #4a505b; --track: #23262d;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -14,7 +14,7 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --bg: #f2f3f5; --panel: #fff; --panel-2: #e9ebee; --line: #d9dce2; --line-soft: #e6e8ec;
-  --text: #14161a; --muted: #5b616b; --faint: #8a909a;
+  --text: #14161a; --muted: #5b616b; --faint: #747a85;
   --brand-hover: #c40813;
   --up: #0c8f60; --down: #d92d3a; --bar: #3d424d; --bar-dim: #c3c8d0; --track: #e6e8ec;
   --top-bg: rgba(242, 243, 245, .92); --edge: #c5cad2; --hover: #e4e7eb; --shadow: rgba(20, 22, 26, .16); --grid-dot: rgba(20, 22, 26, .1);
@@ -195,6 +195,8 @@ tr.row:focus-visible { outline-offset: -2px; }
 .sample-name { display: block; padding: 10px 14px 2px; font-size: 15px; font-weight: 700; }
 .sample-dots { display: inline-flex; gap: 6px; }
 .sample-dots button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: var(--edge); }
+.sample-dots button { position: relative; }
+.sample-dots button::after { content: ""; position: absolute; inset: -9px -5px; }      /* dokunma alanı noktadan büyük */
 .sample-dots button:hover { background: var(--muted); }
 .sample-dots button[aria-pressed="true"] { background: var(--brand); }
 #worldmap .map-arcs { transition: opacity .35s; }
@@ -351,7 +353,7 @@ svg .axis { stroke: var(--line); }
 .insight-grid > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .steps { margin: 12px 0 0; }
 .steps h3 i { font-style: normal; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-right: 8px; border-radius: 4px; background: rgba(227, 10, 23, .16); }
-.insight-lock { border: 0; text-align: left; color: var(--muted); font-weight: 600; display: flex; align-items: center; }
+.insight-lock { grid-column: 1 / -1; border: 0; text-align: left; color: var(--muted); font-weight: 600; display: flex; align-items: center; }
 .insight-lock:hover { color: var(--text); background: var(--panel-2); }
 .notes { margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.5; }
 .notes li { position: relative; padding: 0 0 8px 14px; color: var(--text); }
@@ -696,7 +698,8 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .sample-card { display: block; text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--brand); padding: 22px 22px 20px; transition: border-color .15s, transform .15s; }
 .sample-card:hover { transform: translateY(-3px); border-color: var(--edge); border-left-color: var(--brand); }
 .sample-card small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.sample-card small em { font-style: normal; float: right; color: var(--up); letter-spacing: .04em; }
+.sample-card small em { font-style: normal; display: block; margin-top: 4px; color: var(--up); letter-spacing: .04em; }
+.sample-card small { min-height: 2.9em; }
 .sheet-link { display: inline-flex; align-items: center; height: 46px; padding: 0 22px; border-radius: 8px; margin-top: 26px; text-decoration: none; font-size: 15px; }
 .sample-card b { display: block; font: 300 76px/.95 Jost, var(--sans); margin: 14px 0 6px; }
 .sample-card .where { display: block; font: 500 24px/1.1 Jost, var(--sans); }
@@ -788,6 +791,7 @@ body[data-odeme="gercek"] .co-demo, body[data-odeme="gercek"] .co-card { display
 @media (max-width: 720px) {
   .legal.team-about { grid-template-columns: 1fr; padding: 48px 0 0; }
   .inside { grid-template-columns: 1fr; }
+  .founder { grid-template-columns: 84px minmax(0, 1fr); gap: 16px; }
   .home .block { padding-top: 64px; }
   .split-head, .flow, .faq-wrap { grid-template-columns: 1fr; }
   .flow { gap: 0; border-top: 0; }
