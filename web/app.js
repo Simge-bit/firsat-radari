@@ -845,7 +845,7 @@ $("form").addEventListener("submit", (event) => {
 
 // Kapak tek bir ürüne bağlı değildir: bu örnekler arasında kendiliğinden döner.
 const SAMPLES = [
-  { hs6: "080222", name: "İç fındık" },
+  { hs6: "080222", name: "İç fındık", open: true },      // tam raporu herkese açık örnek (server.py OPEN_SAMPLES)
   { hs6: "570242", name: "Makine halısı" },
   { hs6: "150920", name: "Sızma zeytinyağı" },
   { hs6: "251512", name: "Blok mermer" },
@@ -982,11 +982,11 @@ function renderSamples() {
   // Kartlar yüklendikçe eklenir; eskiler yeniden çizilmez, böylece giriş hareketi baştan oynamaz.
   loaded.filter((sample) => !box.querySelector(`[data-hs6="${sample.hs6}"]`)).forEach((sample) => {
     const top = sample.rows[0];
-    box.insertAdjacentHTML("beforeend", `<a class="sample-card" href="/rapor/${sample.hs6}" data-hs6="${sample.hs6}">
-      <small>${esc(sample.name)}</small><b>${num(top.score, 0)}</b>
+    box.insertAdjacentHTML("beforeend", `<a class="sample-card${sample.open ? " free" : ""}" href="/rapor/${sample.hs6}" data-hs6="${sample.hs6}">
+      <small>${esc(sample.name)}${sample.open ? "<em>Ücretsiz tam rapor</em>" : ""}</small><b>${num(top.score, 0)}</b>
       <span class="where">${esc(nameOf(top))}</span>
       <span class="facts">${esc(million(top.imports))} pazar · ${growthCell(top.G_raw)}</span>
-      <span class="open">Önizlemeyi aç</span></a>`);
+      <span class="open">${sample.open ? "Tam raporu aç" : "Önizlemeyi aç"}</span></a>`);
     watchMotion(box.lastElementChild);
   });
   $("ornekler").hidden = !loaded.length;

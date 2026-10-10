@@ -185,5 +185,39 @@ class Yonetim(unittest.TestCase):
         self.assertNotIn("biten@firma.com", [item["eposta"] for item in uyelik.overview()["uyeler"]])
 
 
+
+class AcikOrnek(unittest.TestCase):
+    """Tam raporu herkese açık örnek ürün: belirteçsiz istek de tam veriyi alır, diğer ürünler kilitli kalır."""
+
+    @classmethod
+    def setUpClass(cls):
+        import threading
+        import urllib.request
+        from http.server import ThreadingHTTPServer
+        cls.site = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+        threading.Thread(target=cls.site.serve_forever, daemon=True).start()
+        cls.get = staticmethod(lambda code: json.loads(urllib.request.urlopen(f"http://127.0.0.1:{cls.site.server_port}/api/rapor?gtip={code}").read()))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.site.shutdown()
+
+    def test_acik_ornek_tam_gelir(self):
+        report = self.get("080222")
+        self.assertNotIn("kilitli", report)
+        self.assertGreater(len(report["rows"]), 5)
+        self.assertIn("rivals", report["rows"][1])
+
+    def test_diger_ornek_kilitli_kalir(self):
+        report = self.get("570242")
+        self.assertTrue(report["kilitli"])
+        self.assertEqual(len(report["rows"]), 1)
+
+    def test_acik_ornekler_sayfayla_ayni(self):
+        script = (server.WEB / "app.js").read_text(encoding="utf-8")
+        for code in server.OPEN_SAMPLES:
+            self.assertRegex(script, r'hs6: "%s"[^}]*open: true' % code)
+
+
 if __name__ == "__main__":
     unittest.main()

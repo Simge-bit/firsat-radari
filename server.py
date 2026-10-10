@@ -29,6 +29,7 @@ WEB = Path(__file__).resolve().parent / "web"
 READY = Path(__file__).resolve().parent / "data" / "hazir"
 ROBOTS = "User-agent: *\nDisallow: /api/\n"      # tarayıcı robotlar veri kotasını tüketmesin
 PAGES = ["/", "/paketler", "/ekip", "/kayit", "/gizlilik", "/kosullar", "/mesafeli-satis", "/iade"]
+OPEN_SAMPLES = {"080222"}                  # tam raporu herkese açık örnek ürünler (web/app.js içindeki SAMPLES ile aynı olmalı)
 PRICES = {"single": 490, "pro": 999, "yearly": 9000}       # TL; web/app.js içindeki PRICES ile aynı olmalı
 # Gösterim modu: iyzico anahtarları girilene kadar ödeme para almadan onaylanır.
 DEMO = not odeme.configured()
@@ -293,7 +294,8 @@ class Handler(BaseHTTPRequestHandler):
             plan = "pro" if grant["pro"] else "free"
             try:
                 body = report(gtip[:6], self._visitor(), plan)
-                self._send(200, "application/json; charset=utf-8", body if grant["pro"] or gtip[:6] in grant["reports"] else locked(body))
+                opened = grant["pro"] or gtip[:6] in grant["reports"] or gtip[:6] in OPEN_SAMPLES
+                self._send(200, "application/json; charset=utf-8", body if opened else locked(body))
             except LimitReached:
                 self._json(429, {"error": f"Bugünlük {DAILY_NEW[plan]} yeni ürün sınırına ulaştın. Daha önce açtığın ürünlere bakmaya devam edebilirsin. "
                                           + ("Yarın yeniden deneyebilirsin." if plan == "pro" else f"Pro pakette günlük sınır {DAILY_NEW['pro']} üründür.")})

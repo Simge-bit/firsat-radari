@@ -696,6 +696,8 @@ footer { border-top: 1px solid var(--line); margin-top: 80px; }
 .sample-card { display: block; text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--brand); padding: 22px 22px 20px; transition: border-color .15s, transform .15s; }
 .sample-card:hover { transform: translateY(-3px); border-color: var(--edge); border-left-color: var(--brand); }
 .sample-card small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.sample-card small em { font-style: normal; float: right; color: var(--up); letter-spacing: .04em; }
+.sheet-link { display: inline-flex; align-items: center; height: 46px; padding: 0 22px; border-radius: 8px; margin-top: 26px; text-decoration: none; font-size: 15px; }
 .sample-card b { display: block; font: 300 76px/.95 Jost, var(--sans); margin: 14px 0 6px; }
 .sample-card .where { display: block; font: 500 24px/1.1 Jost, var(--sans); }
 .sample-card .facts { display: block; color: var(--muted); font-size: 13px; margin-top: 8px; }
