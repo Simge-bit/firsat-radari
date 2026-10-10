@@ -213,6 +213,35 @@ class AcikOrnek(unittest.TestCase):
         self.assertTrue(report["kilitli"])
         self.assertEqual(len(report["rows"]), 1)
 
+    def post(self, path, body):
+        import urllib.error
+        import urllib.request
+        request = urllib.request.Request(f"http://127.0.0.1:{self.site.server_port}{path}", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request) as response:
+                return response.status, json.loads(response.read())
+        except urllib.error.HTTPError as error:
+            return error.code, json.loads(error.read())
+
+    def test_profil_ad_ve_sifre_degisir(self):
+        uyelik.register("profil@firma.com", "Eski Ad", "Eski Firma", "eski-sifre-12")
+        token = server.session("profil@firma.com")["token"]
+        status, body = self.post("/api/profil", {"t": token, "ad": "Yeni Ad", "firma": "Yeni Firma"})
+        self.assertEqual((status, body["ad"], body["firma"]), (200, "Yeni Ad", "Yeni Firma"))
+        self.assertEqual(self.post("/api/profil", {"t": token, "ad": "Yeni Ad", "sifre": "yeni-sifre-12"})[0], 403)
+        self.assertEqual(self.post("/api/profil", {"t": token, "ad": "Yeni Ad", "sifre": "yeni-sifre-12", "eski": "yanlis"})[0], 403)
+        self.assertTrue(uyelik.check_password("profil@firma.com", "eski-sifre-12"))
+        self.assertEqual(self.post("/api/profil", {"t": token, "ad": "Yeni Ad", "sifre": "yeni-sifre-12", "eski": "eski-sifre-12"})[0], 200)
+        self.assertTrue(uyelik.check_password("profil@firma.com", "yeni-sifre-12"))
+        self.assertEqual(self.post("/api/profil", {"t": token, "ad": "  "})[0], 400)
+        self.assertEqual(self.post("/api/profil", {"t": "sahte.belirtec", "ad": "X"})[0], 401)
+
+    def test_acik_ornegin_kesiti_gelir(self):
+        import urllib.request
+        get = lambda code: json.loads(urllib.request.urlopen(f"http://127.0.0.1:{self.site.server_port}/api/ornek?gtip={code}").read())
+        self.assertEqual(set(get("080222")["kesit"]), {"pay", "vergi", "rakipler"})
+        self.assertNotIn("kesit", get("570242"))
+
     def test_her_sayfa_acilir(self):
         import urllib.request
         for path in server.PAGES + ["/yonetim", "/giris", "/rapor/080222", "/static/app.css", "/static/yonetim.js", "/robots.txt", "/sitemap.xml"]:

@@ -470,11 +470,14 @@ function showLogin(pane) {
 
 $("account").addEventListener("click", () => {
   if (!access.email) return go("/giris");
-  $("ac-name").textContent = access.ad || "Belirtilmedi";
-  $("ac-company").textContent = access.firma || "Belirtilmedi";
-  $("ac-setpass").hidden = access.sifre_var;
-  $("ac-error").hidden = true;
-  $("ac-pass").value = "";
+  $("ac-name").value = access.ad;
+  $("ac-company").value = access.firma;
+  // Şifresi olmayan (yalnızca e-posta bağlantısıyla girmiş) üye mevcut şifre sorulmadan şifre belirler.
+  $("ac-pass-title").textContent = access.sifre_var ? "Şifreyi değiştir" : "Şifre belirle";
+  $("ac-old-wrap").hidden = !access.sifre_var;
+  $("ac-setpass").open = !access.sifre_var;
+  $("ac-error").hidden = $("ac-saved").hidden = true;
+  $("ac-pass").value = $("ac-old").value = "";
   $("ac-email").textContent = access.email;
   $("ac-plan").textContent = access.pro
     ? "Pro, " + new Date(access.pro_until * 1000).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) + " tarihine kadar" : "Ücretsiz";
@@ -564,17 +567,26 @@ $("au-forgot").addEventListener("click", () => {
   showLogin("lg-form");
 });
 
-$("ac-savepass").addEventListener("click", async () => {
-  const problem = $("ac-error");
-  if ($("ac-pass").value.length < 8) { problem.textContent = "Şifren en az 8 karakter olmalı."; problem.hidden = false; return; }
+$("ac-save").addEventListener("click", async () => {
+  const problem = $("ac-error"), password = $("ac-pass").value;
+  const stop = (message) => { problem.textContent = message; problem.hidden = false; };
+  problem.hidden = $("ac-saved").hidden = true;
+  if (!$("ac-name").value.trim()) return stop("Adını ve soyadını yaz.");
+  if (password && password.length < 8) return stop("Şifren en az 8 karakter olmalı.");
+  if (password && access.sifre_var && !$("ac-old").value) return stop("Şifreni değiştirmek için mevcut şifreni de yaz.");
   try {
-    const response = await postJson("/api/profil", { t: access.token, sifre: $("ac-pass").value });
+    const response = await postJson("/api/profil", { t: access.token, ad: $("ac-name").value, firma: $("ac-company").value,
+      ...(password ? { sifre: password, eski: $("ac-old").value } : {}) });
     const payload = await response.json();
-    if (!response.ok) { problem.textContent = payload.error || "Şifre kaydedilemedi."; problem.hidden = false; return; }
+    if (!response.ok) return stop(payload.error || "Bilgilerin kaydedilemedi.");
     Object.assign(access, payload);
     saveAccess();
-    $("ac-setpass").hidden = true;
-  } catch (error) { problem.textContent = "Sunucuya ulaşılamadı. Tekrar dene."; problem.hidden = false; }
+    $("ac-pass").value = $("ac-old").value = "";
+    $("ac-pass-title").textContent = "Şifreyi değiştir";
+    $("ac-old-wrap").hidden = false;
+    $("ac-setpass").open = false;
+    $("ac-saved").hidden = false;
+  } catch (error) { stop("Sunucuya ulaşılamadı. Tekrar dene."); }
 });
 
 // E-postadaki bağlantıyla gelindi: kod sunucuda onaylanır, oturum açılır ve adres çubuğundaki kod silinir.
@@ -881,17 +893,24 @@ function drawArcs(rows) {
   svg.style.setProperty("--map-font", font + "px");
   svg.style.setProperty("--map-mark", mark);
 
-  // Etiketler üst üste binmesin: çakışan etiket aşağı ya da yukarı kaydırılır.
-  const placed = [];
-  const place = (x, y, text, anchorEnd) => {
-    const width = text.length * font * 0.56, left = anchorEnd ? x - width : x;
-    for (const dy of [-5 * mark, 12 * mark, -5 * mark - font * 1.15, 12 * mark + font * 1.15]) {
-      const box = { x1: left, x2: left + width, y1: y + dy - font, y2: y + dy };
-      if (!placed.some((other) => box.x1 < other.x2 && box.x2 > other.x1 && box.y1 < other.y2 && box.y2 > other.y1)) { placed.push(box); return y + dy; }
+  // Etiketler ne birbirinin ne de ülke işaretlerinin üstüne binsin: önce işaretlerin yeri ayrılır,
+  // sonra her etiket için işaretin iki yanında, yukarıdan aşağıya boş bir yer aranır.
+  const placed = points.map(([x, y]) => ({ x1: x - 4 * mark, x2: x + 4 * mark, y1: y - 4 * mark, y2: y + 4 * mark }));
+  const place = (x, y, text, preferEnd) => {
+    const width = text.length * font * 0.58, gap = 6 * mark;
+    for (const end of [preferEnd, !preferEnd]) {
+      for (const dy of [font * 0.35, -font * 0.75, font * 1.4, -font * 1.8, font * 2.5, -font * 2.9]) {
+        const left = end ? x - gap - width : x + gap;
+        const box = { x1: left, x2: left + width, y1: y + dy - font, y2: y + dy };
+        if (!placed.some((other) => box.x1 < other.x2 && box.x2 > other.x1 && box.y1 < other.y2 && box.y2 > other.y1)) {
+          placed.push(box);
+          return { x: end ? x - gap : x + gap, y: y + dy, end };
+        }
+      }
     }
-    return y - 5 * mark;
+    return { x: preferEnd ? x - gap : x + gap, y: y + font * 0.35, end: preferEnd };
   };
-  place(home[0] + 6 * mark, home[1] + 16 * mark, "Türkiye", false);
+  placed.push({ x1: home[0] + 6 * mark, x2: home[0] + 6 * mark + 7 * font * 0.58, y1: home[1] + 16 * mark - font, y2: home[1] + 16 * mark });
 
   document.querySelector("#worldmap .map-arcs").innerHTML = targets.map((row, index) => {
     const [x, y] = mapData.centroids[row.iso2];
@@ -899,10 +918,11 @@ function drawArcs(rows) {
     const path = `M${home[0]},${home[1]} Q${(home[0] + x) / 2},${Math.min(home[1], y) - lift} ${x},${y}`;
     const delay = (index * 0.12).toFixed(2), left = x < home[0];
     const label = index < MAP_LABELS ? nameOf(row) : "";
+    const spot = label ? place(x, y, label, left) : null;
     return `<path id="arc${index}" class="map-arc${index >= MAP_LABELS ? " dim" : ""}" pathLength="1" d="${path}" style="animation-delay:${delay}s"/>
       <circle class="map-pulse" r="${1.5 * mark}"><animateMotion dur="${(3.2 + index * 0.35).toFixed(2)}s" begin="${delay}s" repeatCount="indefinite"><mpath href="#arc${index}"/></animateMotion></circle>
       <circle class="map-end" cx="${x}" cy="${y}" r="${2.6 * mark}"/>
-      ${label ? `<text class="map-label" x="${x + (left ? -5 : 5) * mark}" y="${place(x + (left ? -5 : 5) * mark, y, label, left)}" text-anchor="${left ? "end" : "start"}">${esc(label)}</text>` : ""}`;
+      ${spot ? `<text class="map-label" x="${spot.x}" y="${spot.y}" text-anchor="${spot.end ? "end" : "start"}">${esc(label)}</text>` : ""}`;
   }).join("");
   const homeLabel = document.querySelector("#worldmap .map-home-label");
   homeLabel.setAttribute("x", home[0] + 6 * mark);
@@ -978,6 +998,21 @@ function renderTicker() {
   $("ticker").hidden = !items;
 }
 
+// Ana sayfadaki rapor kesiti güncel rapordan doldurulur; sayfadaki sabit rakamlar yalnızca veri gelmezse kalır.
+function fillSheet(top, extra) {
+  const bars = [{ name: "Türkiye", share: extra.pay, turkiye: true }]
+    .concat(extra.rakipler.map((rival) => ({ name: countryName(rival.iso2, rival.country), share: rival.share })))
+    .sort((a, b) => b.share - a.share);
+  $("sh-country").textContent = nameOf(top);
+  $("sh-score").textContent = num(top.score, 0);
+  $("sh-size").textContent = million(top.imports);
+  $("sh-growth").innerHTML = growthCell(top.G_raw);
+  $("sh-duty").textContent = extra.vergi === null ? "Veri yok" : "%" + num(extra.vergi, extra.vergi % 1 ? 1 : 0);
+  $("sh-bars").innerHTML = bars.map((bar) => `<div${bar.turkiye ? ' class="tr"' : ""}><span>${esc(bar.name)}</span>
+    <i><b style="width:${Math.min(100, bar.share * 100).toFixed(1)}%"></b></i><span>${esc(pct(bar.share))}</span></div>`).join("");
+  document.querySelector(".sheet").setAttribute("aria-label", `Örnek rapor kesiti: iç fındık, birinci pazar ${nameOf(top)}, skor ${num(top.score, 0)}`);
+}
+
 // Ana sayfadaki örnek raporlar şeridi: her örnek ürünün birinci pazarı ve skoru.
 function renderSamples() {
   const loaded = SAMPLES.filter((sample) => sample.rows), box = $("samples");
@@ -1013,9 +1048,10 @@ async function loadPreview() {
     try {
       const response = await fetch("/api/ornek?gtip=" + sample.hs6);
       if (!response.ok) continue;
-      const rows = (await response.json()).rows;
+      const payload = await response.json(), rows = payload.rows;
       if (!rows.length) continue;
       sample.rows = rows;
+      if (payload.kesit) fillSheet(rows[0], payload.kesit);
       renderTicker();
       renderSamples();
       if (SAMPLES.filter((item) => item.rows).length === 1) { showSample(SAMPLES.indexOf(sample)); startRotation(); }

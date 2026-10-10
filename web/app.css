@@ -478,6 +478,9 @@ dialog::backdrop { background: var(--veil); backdrop-filter: blur(3px); }
 #login .co-actions { margin-top: 18px; }
 #login .wide { margin-top: 8px; }
 .acct-info { margin: 14px 0 4px; }
+.acct-pass { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.acct-pass summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+.co-ok { color: var(--up); font-size: 13px; margin: 12px 0 0; }
 .acct-info dt { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); margin-top: 12px; }
 .acct-info dd { margin: 3px 0 0; overflow-wrap: anywhere; }
 .top-right .acct { border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 500; padding: 7px 12px; border-radius: 6px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -113,10 +113,10 @@
     <section class="wrap block" id="rapor-icerigi">
       <div class="inside">
         <div class="sheet" role="img" aria-label="Örnek rapor kesiti: iç fındık, birinci pazar Polonya, skor 84">
-          <div class="sheet-top"><div><small>Örnek rapor · İç fındık · 1. pazar</small><b>Polonya</b></div><div class="sheet-score"><b>84</b><small>skor</small></div></div>
-          <div class="sheet-facts"><div><small>Pazar</small><b>115,5 mn $</b></div><div><small>Yıllık büyüme</small><b class="up">▲ %11,4</b></div><div><small>Gümrük vergisi</small><b>%3</b></div></div>
+          <div class="sheet-top"><div><small>Örnek rapor · İç fındık · 1. pazar</small><b id="sh-country">Polonya</b></div><div class="sheet-score"><b id="sh-score">84</b><small>skor</small></div></div>
+          <div class="sheet-facts"><div><small>Pazar</small><b id="sh-size">115,5 mn $</b></div><div><small>Yıllık büyüme</small><b id="sh-growth"><span class="up">▲ %11,4</span></b></div><div><small>Gümrük vergisi</small><b id="sh-duty">%3</b></div></div>
           <small>Tedarikçi payları</small>
-          <div class="sheet-bars">
+          <div class="sheet-bars" id="sh-bars">
             <div><span>Şili</span><i><b style="width:64%"></b></i><span>%64,0</span></div>
             <div><span>İtalya</span><i><b style="width:17.7%"></b></i><span>%17,7</span></div>
             <div class="tr"><span>Türkiye</span><i><b style="width:6.5%"></b></i><span>%6,5</span></div>
@@ -557,22 +557,25 @@
   </div>
   <div class="co" id="lg-account" hidden>
     <h2>Hesabım</h2>
+    <label class="co-field" for="ac-name">Ad soyad<input id="ac-name" autocomplete="name" maxlength="80"></label>
+    <label class="co-field" for="ac-company">Firma adı<input id="ac-company" autocomplete="organization" maxlength="80"></label>
     <dl class="acct-info">
-      <dt>Ad soyad</dt><dd id="ac-name"></dd>
-      <dt>Firma</dt><dd id="ac-company"></dd>
       <dt>E-posta</dt><dd id="ac-email"></dd>
       <dt>Paket</dt><dd id="ac-plan"></dd>
       <dt>Açık raporlar</dt><dd id="ac-reports"></dd>
     </dl>
-    <div id="ac-setpass" hidden>
-      <label class="co-field" for="ac-pass">Şifre belirle<input id="ac-pass" type="password" autocomplete="new-password" minlength="8"></label>
-      <p class="co-hint">Şifre belirlersen bir dahaki sefere e-posta bağlantısı beklemeden giriş yapabilirsin.</p>
-      <p class="co-error" id="ac-error" role="alert" hidden></p>
-      <button type="button" class="ghost wide" id="ac-savepass">Şifreyi kaydet</button>
-    </div>
+    <details class="acct-pass" id="ac-setpass">
+      <summary id="ac-pass-title">Şifreyi değiştir</summary>
+      <label class="co-field" for="ac-old" id="ac-old-wrap">Mevcut şifren<input id="ac-old" type="password" autocomplete="current-password"></label>
+      <label class="co-field" for="ac-pass">Yeni şifren<input id="ac-pass" type="password" autocomplete="new-password" minlength="8"></label>
+      <p class="co-hint">Şifren en az 8 karakter olmalı.</p>
+    </details>
+    <p class="co-error" id="ac-error" role="alert" hidden></p>
+    <p class="co-ok" id="ac-saved" role="status" hidden>Bilgilerin kaydedildi.</p>
     <div class="co-actions">
       <button type="button" class="ghost" id="ac-logout">Çıkış yap</button>
-      <button type="button" class="go" data-close>Tamam</button>
+      <button type="button" class="ghost" data-close>Kapat</button>
+      <button type="button" class="go" id="ac-save">Kaydet</button>
     </div>
   </div>
 </dialog>

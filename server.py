@@ -184,7 +184,13 @@ def sample(hs6):
     if not re.fullmatch(r"\d{6}", hs6) or not ready.is_file():
         return None
     rows = json.loads(_report(hs6, datetime.date.today().isocalendar()[:2]))["rows"]
-    return {"hs6": hs6, "rows": [{key: row[key] for key in SAMPLE_ROW} for row in rows[:7]]}
+    found = {"hs6": hs6, "rows": [{key: row[key] for key in SAMPLE_ROW} for row in rows[:7]]}
+    if hs6 in OPEN_SAMPLES:
+        # Ana sayfadaki rapor kesiti: tam raporu zaten herkese açık olan örneğin birinci pazarından birkaç rakam.
+        top, duty = rows[0], rows[0].get("tariff")
+        found["kesit"] = {"pay": top["tr_share"], "vergi": None if not duty else duty["mfn"] if duty["tr"] is None else duty["tr"],
+                          "rakipler": [{"country": rival["country"], "iso2": rival["iso2"], "share": rival["share"]} for rival in top["rivals"][:2]]}
+    return found
 
 
 def report(hs6, visitor, plan):
@@ -408,6 +414,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(401, {"error": "Bu işlem için giriş yapman gerekir."})
             if password and not PASSWORD_MIN <= len(password) <= 200:
                 return self._json(400, {"error": f"Şifren en az {PASSWORD_MIN} karakter olmalı."})
+            if password and uyelik.profile(email)["sifre_var"]:
+                # Şifresi olan hesapta yeni şifre için mevcut şifre de istenir; oturumu ele geçiren biri şifreyi değiştiremesin.
+                if throttled(("sifre", email)):
+                    return self._json(429, {"error": "Çok fazla deneme yapıldı. Bir saat sonra tekrar dene."})
+                if not uyelik.check_password(email, str(data.get("eski") or "")[:200]):
+                    return self._json(403, {"error": "Mevcut şifren hatalı."})
+            if "ad" in data and not " ".join(str(data["ad"] or "").split()):
+                return self._json(400, {"error": "Adını ve soyadını yaz."})
             clean = lambda key: " ".join(str(data[key] or "").split())[:80] if key in data else None
             uyelik.update_profile(email, clean("ad"), clean("firma"), password or None)
             self._json(200, session(email))
