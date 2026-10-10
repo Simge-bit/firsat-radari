@@ -5,6 +5,8 @@ Veriler SQLite dosyasında durur (IHRACBUL_DB ortam değişkeni ya da proje kök
 Barındırma ortamında bu dosyanın kalıcı bir diskte olması gerekir; yoksa sunucu yeniden başladığında hesaplar silinir.
 """
 
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -33,6 +35,11 @@ def _db():
         CREATE TABLE IF NOT EXISTS siparisler (id TEXT PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
                                               zaman REAL NOT NULL, belirtec TEXT, odendi INTEGER NOT NULL DEFAULT 0);
     """)
+    # Sonradan eklenen sütunlar: eski veritabanı dosyası açılışta tamamlanır.
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(uyeler)")}
+    for name in ("ad", "firma", "sifre"):
+        if name not in columns:
+            connection.execute(f"ALTER TABLE uyeler ADD COLUMN {name} TEXT")
     return connection
 
 
@@ -48,6 +55,54 @@ def grants(email):
         row = db.execute("SELECT pro_bitis, raporlar FROM uyeler WHERE eposta = ?", (email,)).fetchone()
     until, reports = (row[0], json.loads(row[1])) if row else (0, [])
     return {"email": email, "pro": until > time.time(), "pro_until": until if until > time.time() else 0, "reports": reports}
+
+
+def _hash(password, salt=None):
+    """Şifrenin saklanan hali: "tuz$özet". Şifrenin kendisi hiçbir yerde tutulmaz."""
+    salt = salt or secrets.token_hex(16)
+    digest = hashlib.scrypt(password.encode("utf-8"), salt=bytes.fromhex(salt), n=2 ** 14, r=8, p=1).hex()
+    return salt + "$" + digest
+
+
+def profile(email):
+    """Üyenin görünen bilgileri: {"ad", "firma", "sifre_var"}. Üye yoksa boş."""
+    with _db() as db:
+        row = db.execute("SELECT ad, firma, sifre FROM uyeler WHERE eposta = ?", (email,)).fetchone()
+    return {"ad": (row[0] or "") if row else "", "firma": (row[1] or "") if row else "", "sifre_var": bool(row and row[2])}
+
+
+def register(email, name, company, password):
+    """Yeni üye açar: "tamam". Adres kayıtlıysa "var" döner ve hiçbir şey değişmez.
+
+    Şifresiz kayıt (yalnızca paket almış üye) da "var" sayılır: adresin sahibi olduğunu e-postadaki bağlantıyla
+    kanıtlayıp şifresini hesabından belirler. Aksi halde başkası o adrese şifre koyup paketi ele geçirebilirdi.
+    """
+    with _db() as db:
+        if db.execute("SELECT 1 FROM uyeler WHERE eposta = ?", (email,)).fetchone():
+            return "var"
+        db.execute("INSERT INTO uyeler (eposta, kayit, ad, firma, sifre) VALUES (?, ?, ?, ?, ?)", (email, time.time(), name, company, _hash(password)))
+    return "tamam"
+
+
+def check_password(email, password):
+    with _db() as db:
+        row = db.execute("SELECT sifre FROM uyeler WHERE eposta = ?", (email,)).fetchone()
+    if not row or not row[0]:
+        return False
+    salt = row[0].split("$")[0]
+    return hmac.compare_digest(row[0], _hash(password, salt))
+
+
+def update_profile(email, name=None, company=None, password=None):
+    """Giriş yapmış üyenin adını, firmasını ya da şifresini değiştirir; verilmeyen alan olduğu gibi kalır."""
+    with _db() as db:
+        db.execute("INSERT OR IGNORE INTO uyeler (eposta, kayit) VALUES (?, ?)", (email, time.time()))
+        if name is not None:
+            db.execute("UPDATE uyeler SET ad = ? WHERE eposta = ?", (name, email))
+        if company is not None:
+            db.execute("UPDATE uyeler SET firma = ? WHERE eposta = ?", (company, email))
+        if password:
+            db.execute("UPDATE uyeler SET sifre = ? WHERE eposta = ?", (_hash(password), email))
 
 
 def record_purchase(email, kind, hs6, amount, provider, reference=None):

@@ -14,6 +14,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0b0c0f">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e30a17'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23fff' stroke-width='2.4'/%3E%3Cpath d='M16 16 22.5 9.5' stroke='%23fff' stroke-width='2.6' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='2.2' fill='%23fff'/%3E%3C/svg%3E">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("fr-tema") || "dark"; } catch (error) { document.documentElement.dataset.theme = "dark"; }</script>
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body class="view-home">
@@ -36,6 +37,10 @@
     </nav>
     <div class="top-right">
       <a href="/paketler" data-route>Paketler</a>
+      <button type="button" class="theme-toggle" id="theme" aria-label="Aydınlık ya da karanlık görünüme geç" title="Görünümü değiştir">
+        <svg class="moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 11.6A7 7 0 0 1 8.4 3.5a7 7 0 1 0 8.1 8.1Z"/></svg>
+        <svg class="sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="3.4"/><path d="M10 2.5v1.8M10 15.7v1.8M2.5 10h1.8M15.7 10h1.8M4.7 4.7 6 6M14 14l1.3 1.3M4.7 15.3 6 14M14 6l1.3-1.3"/></svg>
+      </button>
       <button type="button" class="acct" id="account">Giriş yap</button>
       <a class="plan" id="plan" href="/paketler" data-route>Ücretsiz plan</a>
     </div>
@@ -270,6 +275,44 @@
       </dl>
     </section>
 
+    <section class="legal auth" id="giris-sayfa">
+      <div class="auth-side">
+        <p class="team-role">Hesap</p>
+        <h1>Raporların tek hesapta dursun.</h1>
+        <p>Hesap açtığında aldığın paketler adına kaydedilir. Bilgisayarından, telefonundan ya da başka bir cihazdan giriş yaparak raporlarına ulaşabilirsin.</p>
+        <ul>
+          <li>Hesap açmak ücretsizdir.</li>
+          <li>Kart bilgisi istenmez.</li>
+          <li>Ücretsiz planda günde 3 ürün arayabilirsin.</li>
+        </ul>
+      </div>
+      <div class="auth-main">
+        <div class="auth-tabs" role="tablist">
+          <a href="/giris" data-route role="tab" id="tab-giris">Giriş yap</a>
+          <a href="/kayit" data-route role="tab" id="tab-kayit">Kayıt ol</a>
+        </div>
+        <form class="auth-form" id="au-login" novalidate>
+          <label class="co-field" for="au-email">E-posta adresin<input id="au-email" type="email" autocomplete="email" placeholder="ornek@firma.com" required></label>
+          <label class="co-field" for="au-pass">Şifren<input id="au-pass" type="password" autocomplete="current-password" required></label>
+          <p class="co-error" id="au-login-error" role="alert" hidden></p>
+          <button class="go wide" id="au-login-go">Giriş yap</button>
+          <p class="auth-note"><button type="button" class="link" id="au-forgot">Şifremi unuttum</button></p>
+          <p class="auth-note">Hesabın yoksa <a href="/kayit" data-route>kayıt olabilirsin</a>.</p>
+        </form>
+        <form class="auth-form" id="au-signup" novalidate hidden>
+          <label class="co-field" for="su-name">Ad soyad<input id="su-name" autocomplete="name" maxlength="80" required></label>
+          <label class="co-field" for="su-company">Firma adı <em>(isteğe bağlı)</em><input id="su-company" autocomplete="organization" maxlength="80"></label>
+          <label class="co-field" for="su-email">E-posta adresin<input id="su-email" type="email" autocomplete="email" placeholder="ornek@firma.com" required></label>
+          <label class="co-field" for="su-pass">Şifren<input id="su-pass" type="password" autocomplete="new-password" minlength="8" required></label>
+          <p class="co-hint">Şifren en az 8 karakter olmalı.</p>
+          <label class="co-check"><input type="checkbox" id="su-consent"><span><a href="/kosullar" target="_blank">Kullanım koşullarını</a> ve <a href="/gizlilik" target="_blank">gizlilik metnini</a> okudum, kabul ediyorum.</span></label>
+          <p class="co-error" id="au-signup-error" role="alert" hidden></p>
+          <button class="go wide" id="au-signup-go">Hesap aç</button>
+          <p class="auth-note">Hesabın varsa <a href="/giris" data-route>giriş yapabilirsin</a>.</p>
+        </form>
+      </div>
+    </section>
+
     <article class="legal" id="gizlilik-sayfa">
       <p class="eyebrow">Yasal</p>
       <h1>Gizlilik ve kişisel veriler</h1>
@@ -474,8 +517,8 @@
 
 <dialog id="login" aria-labelledby="lg-title">
   <div class="co" id="lg-form">
-    <h2 id="lg-title">Giriş yap</h2>
-    <p class="muted">Paket aldığın e-posta adresini yaz. Sana tek kullanımlık bir giriş bağlantısı göndereceğiz. Şifre gerekmez.</p>
+    <h2 id="lg-title">Giriş bağlantısı iste</h2>
+    <p class="muted">Hesabının e-posta adresini yaz. Sana tek kullanımlık bir giriş bağlantısı göndereceğiz. Giriş yaptıktan sonra hesabından yeni bir şifre belirleyebilirsin.</p>
     <label class="co-field" for="lg-email">E-posta adresin<input id="lg-email" type="email" autocomplete="email" placeholder="ornek@firma.com" required></label>
     <p class="co-error" id="lg-error" role="alert" hidden></p>
     <div class="co-actions">
@@ -493,10 +536,18 @@
   <div class="co" id="lg-account" hidden>
     <h2>Hesabım</h2>
     <dl class="acct-info">
+      <dt>Ad soyad</dt><dd id="ac-name"></dd>
+      <dt>Firma</dt><dd id="ac-company"></dd>
       <dt>E-posta</dt><dd id="ac-email"></dd>
       <dt>Paket</dt><dd id="ac-plan"></dd>
       <dt>Açık raporlar</dt><dd id="ac-reports"></dd>
     </dl>
+    <div id="ac-setpass" hidden>
+      <label class="co-field" for="ac-pass">Şifre belirle<input id="ac-pass" type="password" autocomplete="new-password" minlength="8"></label>
+      <p class="co-hint">Şifre belirlersen bir dahaki sefere e-posta bağlantısı beklemeden giriş yapabilirsin.</p>
+      <p class="co-error" id="ac-error" role="alert" hidden></p>
+      <button type="button" class="ghost wide" id="ac-savepass">Şifreyi kaydet</button>
+    </div>
     <div class="co-actions">
       <button type="button" class="ghost" id="ac-logout">Çıkış yap</button>
       <button type="button" class="go" data-close>Tamam</button>

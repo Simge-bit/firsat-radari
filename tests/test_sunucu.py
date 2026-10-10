@@ -110,5 +110,41 @@ class Uyelik(unittest.TestCase):
             self.assertIn(f"{kind}: {amount}", script)
 
 
+class Hesap(unittest.TestCase):
+    def test_kayit_ve_sifreyle_giris(self):
+        self.assertEqual(uyelik.register("yeni@firma.com", "Ayşe Yılmaz", "Yılmaz Tekstil", "gizli-sifre-1"), "tamam")
+        self.assertTrue(uyelik.check_password("yeni@firma.com", "gizli-sifre-1"))
+        self.assertFalse(uyelik.check_password("yeni@firma.com", "yanlis-sifre"))
+        self.assertEqual(uyelik.profile("yeni@firma.com"), {"ad": "Ayşe Yılmaz", "firma": "Yılmaz Tekstil", "sifre_var": True})
+
+    def test_sifre_acik_saklanmaz(self):
+        uyelik.register("sakli@firma.com", "A B", "", "cok-gizli-sifre")
+        with uyelik._db() as db:
+            stored = db.execute("SELECT sifre FROM uyeler WHERE eposta = ?", ("sakli@firma.com",)).fetchone()[0]
+        self.assertNotIn("cok-gizli-sifre", stored)
+
+    def test_kayitli_adrese_yeniden_kayit_olunamaz(self):
+        uyelik.register("tek@firma.com", "A B", "", "ilk-sifre-123")
+        self.assertEqual(uyelik.register("tek@firma.com", "Başkası", "", "ikinci-sifre"), "var")
+        self.assertTrue(uyelik.check_password("tek@firma.com", "ilk-sifre-123"))
+
+    def test_paket_almis_adres_sifreyle_ele_gecirilemez(self):
+        uyelik.record_purchase("alici@firma.com", "yearly", None, 9000, "demo")
+        self.assertEqual(uyelik.register("alici@firma.com", "Saldırgan", "", "ele-gecirme-1"), "var")
+        self.assertFalse(uyelik.check_password("alici@firma.com", "ele-gecirme-1"))
+        self.assertFalse(uyelik.check_password("alici@firma.com", ""))
+
+    def test_giris_yapan_sifre_belirleyebilir(self):
+        uyelik.record_purchase("sonra@firma.com", "single", "570242", 490, "demo")
+        uyelik.update_profile("sonra@firma.com", password="yeni-sifre-99")
+        self.assertTrue(uyelik.check_password("sonra@firma.com", "yeni-sifre-99"))
+        self.assertEqual(uyelik.grants("sonra@firma.com")["reports"], ["570242"])
+
+    def test_oturum_ad_ve_firma_tasir(self):
+        uyelik.register("oturum@firma.com", "Can Demir", "Demir Gıda", "sifre-12345")
+        self.assertEqual((server.session("oturum@firma.com")["ad"], server.session("oturum@firma.com")["firma"]), ("Can Demir", "Demir Gıda"))
+
+
 if __name__ == "__main__":
     unittest.main()
+

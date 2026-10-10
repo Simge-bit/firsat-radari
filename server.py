@@ -28,11 +28,12 @@ PORT = 8765
 WEB = Path(__file__).resolve().parent / "web"
 READY = Path(__file__).resolve().parent / "data" / "hazir"
 ROBOTS = "User-agent: *\nDisallow: /api/\n"      # tarayıcı robotlar veri kotasını tüketmesin
-PAGES = ["/", "/paketler", "/ekip", "/gizlilik", "/kosullar", "/mesafeli-satis", "/iade"]
+PAGES = ["/", "/paketler", "/ekip", "/kayit", "/gizlilik", "/kosullar", "/mesafeli-satis", "/iade"]
 PRICES = {"single": 490, "pro": 999, "yearly": 9000}       # TL; web/app.js içindeki PRICES ile aynı olmalı
 # Gösterim modu: iyzico anahtarları girilene kadar ödeme para almadan onaylanır.
 DEMO = not odeme.configured()
-LOGIN_PER_HOUR = {"eposta": 5, "ip": 30}     # bir e-postaya ve bir internet adresinden saatte en çok bu kadar giriş bağlantısı
+LOGIN_PER_HOUR = {"eposta": 5, "ip": 30, "sifre": 10, "kayit": 10}
+PASSWORD_MIN = 8     # bir e-postaya ve bir internet adresinden saatte en çok bu kadar giriş bağlantısı
 _login_tries = {}
 
 
@@ -111,7 +112,7 @@ def read_token(token):
 def session(email):
     """Üyenin güncel haklarını taşıyan imzalı belirteç ve tarayıcıya gösterilecek özet."""
     grant = uyelik.grants(email)
-    return {"token": sign(grant), **grant}
+    return {"token": sign(grant), **grant, **uyelik.profile(email)}
 
 
 def throttled(*keys):
@@ -322,6 +323,39 @@ class Handler(BaseHTTPRequestHandler):
             if DEMO:                          # gösterim modunda posta ayarlı olmayabilir; bağlantı ekranda verilir
                 return self._json(200, {"gonderildi": False, "demo_baglanti": link})
             self._json(503, {"error": "Giriş e-postası gönderilemedi. Biraz sonra tekrar dene."})
+        elif path == "/api/kayit":
+            email, password = uyelik.normalize(data.get("eposta")), str(data.get("sifre") or "")
+            name, company = (" ".join(str(data.get(key) or "").split())[:80] for key in ("ad", "firma"))
+            if not email:
+                return self._json(400, {"error": "Geçerli bir e-posta adresi yaz."})
+            if not name:
+                return self._json(400, {"error": "Adını ve soyadını yaz."})
+            if not PASSWORD_MIN <= len(password) <= 200:
+                return self._json(400, {"error": f"Şifren en az {PASSWORD_MIN} karakter olmalı."})
+            if throttled(("kayit", self._visitor())):
+                return self._json(429, {"error": "Çok fazla kayıt isteği yapıldı. Bir saat sonra tekrar dene."})
+            if uyelik.register(email, name, company, password) == "var":
+                return self._json(409, {"error": "Bu e-posta adresiyle açılmış bir hesap var. Giriş yapabilir ya da şifreni unuttuysan giriş bağlantısı isteyebilirsin."})
+            self._json(200, session(email))
+        elif path == "/api/giris-sifre":
+            email, password = uyelik.normalize(data.get("eposta")), str(data.get("sifre") or "")
+            if not email or not password:
+                return self._json(400, {"error": "E-posta adresini ve şifreni yaz."})
+            if throttled(("sifre", email)):
+                return self._json(429, {"error": "Çok fazla deneme yapıldı. Bir saat sonra tekrar dene."})
+            if not uyelik.check_password(email, password[:200]):
+                return self._json(401, {"error": "E-posta adresi ya da şifre hatalı."})
+            self._json(200, session(email))
+        elif path == "/api/profil":
+            email = read_token(str(data.get("t") or ""))["email"]
+            password = str(data.get("sifre") or "")
+            if not email:
+                return self._json(401, {"error": "Bu işlem için giriş yapman gerekir."})
+            if password and not PASSWORD_MIN <= len(password) <= 200:
+                return self._json(400, {"error": f"Şifren en az {PASSWORD_MIN} karakter olmalı."})
+            clean = lambda key: " ".join(str(data[key] or "").split())[:80] if key in data else None
+            uyelik.update_profile(email, clean("ad"), clean("firma"), password or None)
+            self._json(200, session(email))
         elif path == "/api/giris-onay":
             email = uyelik.redeem(str(data.get("k") or ""))
             if not email:

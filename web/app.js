@@ -71,7 +71,7 @@ function whyText(row) {
 
 // Haklar sunucunun imzaladığı bir belirteçte durur; tarayıcı yalnızca saklar ve her rapor isteğiyle geri gönderir.
 // Kilitli raporun verisi tarayıcıya hiç gelmez. Ödeme şimdilik gösterimdir: belirteç para alınmadan verilir.
-const access = { email: "", pro: false, pro_until: 0, reports: [], token: "" };
+const access = { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false };
 try {
   Object.assign(access, JSON.parse(localStorage.getItem("fr-erisim")) || {});
 } catch (error) { /* depolama kapalıysa ücretsiz planla devam */ }
@@ -85,7 +85,7 @@ function saveAccess() {
 const isOpen = () => Boolean(current) && !current.kilitli;      // ekrandaki rapor tam mı (sunucunun kararı)
 
 function renderPlan() {
-  $("account").textContent = access.email || "Giriş yap";
+  $("account").textContent = access.ad || access.email || "Giriş yap";
   $("account").title = access.email ? "Hesabım" : "";
   $("plan").textContent = access.pro ? "Pro" : "Ücretsiz plan";
   $("plan").classList.toggle("pro", access.pro);
@@ -456,7 +456,7 @@ async function load(hs6) {
 const login = $("login");
 
 function signOut() {
-  Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [], token: "" });
+  Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false });
   saveAccess();
   if (current) load(current.hs6);
 }
@@ -467,10 +467,12 @@ function showLogin(pane) {
 }
 
 $("account").addEventListener("click", () => {
-  if (!access.email) {
-    $("lg-error").hidden = true;
-    return showLogin("lg-form");
-  }
+  if (!access.email) return go("/giris");
+  $("ac-name").textContent = access.ad || "Belirtilmedi";
+  $("ac-company").textContent = access.firma || "Belirtilmedi";
+  $("ac-setpass").hidden = access.sifre_var;
+  $("ac-error").hidden = true;
+  $("ac-pass").value = "";
   $("ac-email").textContent = access.email;
   $("ac-plan").textContent = access.pro
     ? "Pro, " + new Date(access.pro_until * 1000).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) + " tarihine kadar" : "Ücretsiz";
@@ -502,6 +504,75 @@ $("lg-send").addEventListener("click", async () => {
 $("lg-email").addEventListener("keydown", (event) => { if (event.key === "Enter") $("lg-send").click(); });
 $("ac-logout").addEventListener("click", () => { login.close(); signOut(); });
 login.addEventListener("click", (event) => { if (event.target === login || event.target.closest("[data-close]")) login.close(); });
+
+/* ---------- Giriş ve kayıt sayfası ---------- */
+
+function showAuth(signup) {
+  if (access.email) return go("/");                 // giriş yapılmışsa bu sayfanın işi yok
+  $("au-login").hidden = signup;
+  $("au-signup").hidden = !signup;
+  $("tab-giris").setAttribute("aria-selected", String(!signup));
+  $("tab-kayit").setAttribute("aria-selected", String(signup));
+  $("au-login-error").hidden = $("au-signup-error").hidden = true;
+}
+
+// Form gönderilir, yanıt oturum olarak kaydedilir ve ana sayfaya dönülür.
+async function submitAuth(url, body, button, problem) {
+  const label = button.textContent;
+  const fail = (message) => { problem.textContent = message; problem.hidden = false; button.disabled = false; button.textContent = label; };
+  problem.hidden = true;
+  button.disabled = true;
+  button.textContent = "Bekle…";
+  try {
+    const response = await postJson(url, body);
+    const payload = await response.json();
+    if (!response.ok) return fail(payload.error || "İşlem tamamlanamadı. Tekrar dene.");
+    Object.assign(access, payload);
+    saveAccess();
+    button.disabled = false;
+    button.textContent = label;
+    go("/");
+  } catch (error) {
+    fail("Sunucuya ulaşılamadı. Tekrar dene.");
+  }
+}
+
+$("au-login").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const problem = $("au-login-error");
+  if (!$("au-email").checkValidity() || !$("au-pass").value) { problem.textContent = "E-posta adresini ve şifreni yaz."; problem.hidden = false; return; }
+  submitAuth("/api/giris-sifre", { eposta: $("au-email").value, sifre: $("au-pass").value }, $("au-login-go"), problem);
+});
+
+$("au-signup").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const problem = $("au-signup-error");
+  const stop = (message) => { problem.textContent = message; problem.hidden = false; };
+  if (!$("su-name").value.trim()) return stop("Adını ve soyadını yaz.");
+  if (!$("su-email").checkValidity()) return stop("Geçerli bir e-posta adresi yaz.");
+  if ($("su-pass").value.length < 8) return stop("Şifren en az 8 karakter olmalı.");
+  if (!$("su-consent").checked) return stop("Devam etmek için kullanım koşullarını ve gizlilik metnini onayla.");
+  submitAuth("/api/kayit", { ad: $("su-name").value, firma: $("su-company").value, eposta: $("su-email").value, sifre: $("su-pass").value }, $("au-signup-go"), problem);
+});
+
+$("au-forgot").addEventListener("click", () => {
+  $("lg-email").value = $("au-email").value;
+  $("lg-error").hidden = true;
+  showLogin("lg-form");
+});
+
+$("ac-savepass").addEventListener("click", async () => {
+  const problem = $("ac-error");
+  if ($("ac-pass").value.length < 8) { problem.textContent = "Şifren en az 8 karakter olmalı."; problem.hidden = false; return; }
+  try {
+    const response = await postJson("/api/profil", { t: access.token, sifre: $("ac-pass").value });
+    const payload = await response.json();
+    if (!response.ok) { problem.textContent = payload.error || "Şifre kaydedilemedi."; problem.hidden = false; return; }
+    Object.assign(access, payload);
+    saveAccess();
+    $("ac-setpass").hidden = true;
+  } catch (error) { problem.textContent = "Sunucuya ulaşılamadı. Tekrar dene."; problem.hidden = false; }
+});
 
 // E-postadaki bağlantıyla gelindi: kod sunucuda onaylanır, oturum açılır ve adres çubuğundaki kod silinir.
 async function finishLogin() {
@@ -543,6 +614,8 @@ async function refreshSession() {
 
 const LEGAL_PAGES = {
   "/ekip": { id: "ekip-sayfa", title: "Ekip" },
+  "/giris": { id: "giris-sayfa", title: "Giriş yap" },
+  "/kayit": { id: "giris-sayfa", title: "Kayıt ol" },
   "/gizlilik": { id: "gizlilik-sayfa", title: "Gizlilik ve kişisel veriler" },
   "/kosullar": { id: "kosullar-sayfa", title: "Kullanım koşulları" },
   "/mesafeli-satis": { id: "mesafeli-sayfa", title: "Mesafeli satış sözleşmesi" },
@@ -552,7 +625,8 @@ const LEGAL_PAGES = {
 function route() {
   const match = location.pathname.match(/^\/rapor\/(\d{6})\/?$/);
   const legal = LEGAL_PAGES[location.pathname];
-  if (location.pathname === "/giris") return finishLogin();
+  if (location.pathname === "/giris" && new URLSearchParams(location.search).has("k")) return finishLogin();
+  if (legal && legal.id === "giris-sayfa") showAuth(location.pathname === "/kayit");
   const known = match || legal || location.pathname === "/" || location.pathname === "/paketler";
   // Bilinmeyen adres rapor görünümünde bir hata iletisiyle karşılanır; arama kutusu üst şeritte kalır.
   const view = match || !known ? "report" : legal ? "legal" : location.pathname === "/paketler" ? "pricing" : "home";
@@ -952,3 +1026,11 @@ document.addEventListener("mousemove", (event) => {
 renderPlan();
 route();
 refreshSession();
+
+/* ---------- Görünüm: karanlık ya da aydınlık ---------- */
+
+$("theme").addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("fr-tema", next); } catch (error) { /* depolama kapalıysa seçim yalnızca bu sayfada geçerli */ }
+});
