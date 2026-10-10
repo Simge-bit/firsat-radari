@@ -122,8 +122,39 @@ def read_token(token):
 
 def session(email):
     """Üyenin güncel haklarını taşıyan imzalı belirteç ve tarayıcıya gösterilecek özet."""
+    state = sync_subscription(email)
     grant = uyelik.grants(email)
-    return {"token": sign(grant), **grant, **uyelik.profile(email)}
+    return {"token": sign(grant), **grant, **uyelik.profile(email), "abonelik": state}
+
+
+SUBSCRIPTION = "abonelik"                  # sipariş kaydında aylık aboneliği tek seferlik ödemeden ayıran işaret
+RENEW_WINDOW = 2 * 86400                   # Pro bitimine bu kadar kala iyzico'ya yenilendi mi diye sorulur
+RECHECK = 3 * 3600                         # aynı üye için iki sorgu arasındaki en kısa süre
+GRACE = 86400                              # tahsilat gecikirse erişim hemen kesilmesin
+_forms = {}                                # belirteç -> (ödeme formu betiği, son geçerlilik); abonelik formu sayfaya gömülür
+
+
+def sync_subscription(email):
+    """Aboneliğin durumunu döner ("aktif" | "iptal" | "bitti" | ""); süresi dolmak üzereyse iyzico'ya sorup yeniler.
+
+    iyzico her ay kartı kendisi çeker. Site, üye geldiğinde ödenmiş son dönemin bitişini öğrenir ve Pro süresini ona göre uzatır.
+    """
+    current = uyelik.subscription(email)
+    now = time.time()
+    if DEMO or current["durum"] != "aktif" or current["pro_bitis"] - now > RENEW_WINDOW or now - current["bakildi"] < RECHECK:
+        return current["durum"]
+    try:
+        period = odeme.subscription_period(current["ref"])
+    except odeme.PaymentError:
+        traceback.print_exc()
+        return current["durum"]                # iyzico'ya ulaşılamadı: eldeki süreyle devam, sonra yeniden denenir
+    if period["bitis"]:
+        uyelik.renew(email, period["bitis"] + GRACE, period["donem"], PRICES["pro"])
+    if period["durum"] not in ("ACTIVE", "PENDING", "UPGRADED"):
+        uyelik.set_subscription(email, current["ref"], "bitti")
+        return "bitti"
+    uyelik.set_subscription(email, current["ref"], "aktif")
+    return "aktif"
 
 
 def admin_token():
@@ -319,6 +350,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(500, {"error": "Rapor hazırlanırken beklenmeyen bir hata oluştu."})
         elif url.path == "/giris":
             self._page(200)
+        elif url.path == "/odeme-form":
+            # Abonelik ödeme formu: iyzico'nun betiği bu sayfaya gömülür, kart bilgisi doğrudan iyzico'ya gider.
+            form, expires = _forms.get(urllib.parse.parse_qs(url.query).get("t", [""])[0], ("", 0))
+            if not form or expires < time.time():
+                return self._redirect("/paketler?odeme=basarisiz")
+            html = (WEB / "odeme-form.html").read_text(encoding="utf-8").replace("<!--FORM-->", form)
+            self._send(200, "text/html; charset=utf-8", html.encode("utf-8"))
         elif url.path == "/yonetim":
             # Panel ayrı bir sayfadır; verisi yalnızca yönetim şifresiyle açılan oturuma gelir.
             self._send(200, "text/html; charset=utf-8", versioned((WEB / "yonetim.html").read_text(encoding="utf-8")).encode("utf-8"))
@@ -341,11 +379,20 @@ class Handler(BaseHTTPRequestHandler):
         order = uyelik.find_order(token) if not DEMO else None
         if not order:
             return self._redirect("/paketler?odeme=basarisiz")
+        subscribing = order["hs6"] == SUBSCRIPTION
         try:
-            outcome = odeme.result(token, order["id"])
+            outcome = odeme.subscribe_result(token) if subscribing else odeme.result(token, order["id"])
         except odeme.PaymentError:
             traceback.print_exc()
             return self._redirect("/paketler?odeme=belirsiz")
+        _forms.pop(token, None)
+        if subscribing:
+            if not outcome["aktif"]:
+                return self._redirect("/paketler?odeme=basarisiz")
+            if not uyelik.close_order(order["id"], "iyzico", outcome["abonelik"]):
+                return self._redirect("/paketler?odeme=tamam")
+            uyelik.set_subscription(order["email"], outcome["abonelik"], "aktif")
+            return self._redirect(f"/giris?k={uyelik.login_code(order['email'])}&d=%2F")
         if not outcome["odendi"] or outcome["tutar"] < order["amount"]:
             return self._redirect("/paketler?odeme=basarisiz")
         if not uyelik.close_order(order["id"], "iyzico", outcome["referans"]):
@@ -406,6 +453,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(429, {"error": "Çok fazla deneme yapıldı. Bir saat sonra tekrar dene."})
             if not uyelik.check_password(email, password[:200]):
                 return self._json(401, {"error": "E-posta adresi ya da şifre hatalı."})
+            self._json(200, session(email))
+        elif path == "/api/abonelik-iptal":
+            email = read_token(str(data.get("t") or ""))["email"]
+            current = uyelik.subscription(email) if email else {"durum": ""}
+            if not email:
+                return self._json(401, {"error": "Bu işlem için giriş yapman gerekir."})
+            if current["durum"] != "aktif":
+                return self._json(400, {"error": "Bu hesapta devam eden bir abonelik yok."})
+            try:
+                odeme.cancel_subscription(current["ref"])
+            except odeme.PaymentError:
+                traceback.print_exc()
+                return self._json(502, {"error": "Abonelik şu an iptal edilemedi. Biraz sonra tekrar dene ya da bize yaz."})
+            uyelik.set_subscription(email, current["ref"], "iptal")
             self._json(200, session(email))
         elif path == "/api/profil":
             email = read_token(str(data.get("t") or ""))["email"]
@@ -475,9 +536,23 @@ class Handler(BaseHTTPRequestHandler):
                 buyer = {key: " ".join(str(data.get(key) or "").split())[:limit] for key, limit in (("ad", 60), ("soyad", 60), ("adres", 200), ("sehir", 40))}
                 if not all(buyer.values()):
                     return self._json(400, {"error": "Fatura için ad, soyad, adres ve şehir alanlarını doldur."})
-                order_id = uyelik.open_order(email, kind, code if kind == "single" else None, PRICES[kind])
+                if kind == "pro":
+                    # Aylık paket iyzico aboneliğidir: kart saklanır ve her ay kendiliğinden tahsil edilir.
+                    if not odeme.subscriptions_ready():
+                        return self._json(503, {"error": "Aylık paket şu an satın alınamıyor. Yıllık paketi seçebilir ya da daha sonra tekrar deneyebilirsin."})
+                    buyer["telefon"] = odeme.phone(data.get("telefon"))
+                    if not buyer["telefon"]:
+                        return self._json(400, {"error": "Aylık abonelik için geçerli bir cep telefonu numarası yaz."})
+                    if uyelik.subscription(email)["durum"] == "aktif":
+                        return self._json(409, {"error": "Bu hesapta devam eden bir aylık abonelik var."})
+                order_id = uyelik.open_order(email, kind, code if kind == "single" else SUBSCRIPTION if kind == "pro" else None, PRICES[kind])
                 try:
-                    page, token = odeme.start(order_id, kind, PRICES[kind], email, buyer, self._visitor(), self._origin() + "/odeme-sonuc")
+                    if kind == "pro":
+                        token, form = odeme.subscribe_start(order_id, email, buyer, self._origin() + "/odeme-sonuc")
+                        _forms[token] = (form, time.time() + 1800)
+                        page = "/odeme-form?t=" + urllib.parse.quote(token, safe="")
+                    else:
+                        page, token = odeme.start(order_id, kind, PRICES[kind], email, buyer, self._visitor(), self._origin() + "/odeme-sonuc")
                 except odeme.PaymentError:
                     traceback.print_exc()
                     return self._json(502, {"error": "Ödeme sayfası şu an açılamıyor. Biraz sonra tekrar dene."})

@@ -27,7 +27,7 @@ EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}")
 
 SCHEMA = [
     """CREATE TABLE IF NOT EXISTS uyeler (eposta TEXT PRIMARY KEY, pro_bitis REAL NOT NULL DEFAULT 0, raporlar TEXT NOT NULL DEFAULT '[]', kayit REAL NOT NULL,
-                                       ad TEXT, firma TEXT, sifre TEXT)""",
+                                       ad TEXT, firma TEXT, sifre TEXT, abonelik TEXT, abonelik_durum TEXT, abonelik_bakildi REAL)""",
     "CREATE TABLE IF NOT EXISTS giris_kodlari (kod TEXT PRIMARY KEY, eposta TEXT NOT NULL, bitis REAL NOT NULL, kullanildi INTEGER NOT NULL DEFAULT 0)",
     """CREATE TABLE IF NOT EXISTS satin_almalar (id INTEGER PRIMARY KEY, eposta TEXT NOT NULL, tur TEXT NOT NULL, urun TEXT, tutar INTEGER NOT NULL,
                                               zaman REAL NOT NULL, saglayici TEXT NOT NULL, referans TEXT)""",
@@ -101,6 +101,18 @@ class _Remote:
 
     def prepare(self):
         self._send([(sql, ()) for sql in SCHEMA])
+        _migrate(self)
+
+
+ADDED = {"ad": "TEXT", "firma": "TEXT", "sifre": "TEXT", "abonelik": "TEXT", "abonelik_durum": "TEXT", "abonelik_bakildi": "REAL"}
+
+
+def _migrate(db):
+    """Sonradan eklenen sütunlar: eski veritabanı (yerel dosya ya da uzak) açılışta tamamlanır."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(uyeler)")}
+    for name, kind in ADDED.items():
+        if name not in columns:
+            db.execute(f"ALTER TABLE uyeler ADD COLUMN {name} {kind}")
 
 
 def _db():
@@ -117,11 +129,7 @@ def _db():
     if str(path) not in _ready:
         for statement in SCHEMA:
             connection.execute(statement)
-        # Sonradan eklenen sütunlar: eski veritabanı dosyası açılışta tamamlanır.
-        columns = {row[1] for row in connection.execute("PRAGMA table_info(uyeler)")}
-        for name in ("ad", "firma", "sifre"):
-            if name not in columns:
-                connection.execute(f"ALTER TABLE uyeler ADD COLUMN {name} TEXT")
+        _migrate(connection)
         connection.commit()
         _ready.add(str(path))
     return connection
@@ -241,19 +249,41 @@ def close_order(order_id, provider, reference):
         row = db.execute("SELECT eposta, tur, urun, tutar FROM siparisler WHERE id = ?", (order_id,)).fetchone()
     if not claimed:
         return False
-    record_purchase(row[0], row[1], row[2], row[3], provider, reference)
+    record_purchase(row[0], row[1], row[2] if row[1] == "single" else None, row[3], provider, reference)
     return True
+
+
+def subscription(email):
+    """Üyenin aylık aboneliği: {"ref", "durum": "aktif" | "iptal" | "bitti" | "", "bakildi", "pro_bitis"}."""
+    with _db() as db:
+        row = db.execute("SELECT abonelik, abonelik_durum, abonelik_bakildi, pro_bitis FROM uyeler WHERE eposta = ?", (email,)).fetchone()
+    return {"ref": (row[0] or "") if row else "", "durum": (row[1] or "") if row else "", "bakildi": (row[2] or 0) if row else 0, "pro_bitis": row[3] if row else 0}
+
+
+def set_subscription(email, reference, state="aktif"):
+    with _db() as db:
+        db.execute("UPDATE uyeler SET abonelik = ?, abonelik_durum = ?, abonelik_bakildi = ? WHERE eposta = ?", (reference, state, time.time(), email))
+
+
+def renew(email, until, period=None, amount=0):
+    """Aboneliğin ödenmiş döneminin bitişini üyeye yazar. Yeni bir dönem ödendiyse satın alma kaydı da düşer."""
+    with _db() as db:
+        before = db.execute("SELECT pro_bitis FROM uyeler WHERE eposta = ?", (email,)).fetchone()[0]
+        db.execute("UPDATE uyeler SET pro_bitis = ?, abonelik_bakildi = ? WHERE eposta = ?", (max(before, until), time.time(), email))
+        if period and until > before + 86400 and not db.execute("SELECT 1 FROM satin_almalar WHERE referans = ?", (period,)).fetchone():
+            db.execute("INSERT INTO satin_almalar (eposta, tur, urun, tutar, zaman, saglayici, referans) VALUES (?, 'pro', NULL, ?, ?, 'iyzico', ?)",
+                       (email, amount, time.time(), period))
 
 
 def overview():
     """Yönetim paneli için tüm üyeler ve satın almalar, en yeniden eskiye."""
     with _db() as db:
-        members = list(db.execute("SELECT eposta, ad, firma, kayit, pro_bitis, raporlar, sifre IS NOT NULL FROM uyeler ORDER BY kayit DESC LIMIT 1000"))
+        members = list(db.execute("SELECT eposta, ad, firma, kayit, pro_bitis, raporlar, sifre IS NOT NULL, abonelik_durum FROM uyeler ORDER BY kayit DESC LIMIT 1000"))
         purchases = list(db.execute("SELECT eposta, tur, urun, tutar, zaman, saglayici FROM satin_almalar ORDER BY zaman DESC LIMIT 1000"))
     now = time.time()
     return {
         "uyeler": [{"eposta": row[0], "ad": row[1] or "", "firma": row[2] or "", "kayit": row[3], "pro_bitis": row[4] if row[4] > now else 0,
-                    "raporlar": json.loads(row[5]), "sifre_var": bool(row[6])} for row in members],
+                    "raporlar": json.loads(row[5]), "sifre_var": bool(row[6]), "abonelik": row[7] or ""} for row in members],
         "satin_almalar": [dict(zip(("eposta", "tur", "urun", "tutar", "zaman", "saglayici"), row)) for row in purchases],
     }
 

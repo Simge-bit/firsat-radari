@@ -174,7 +174,7 @@ class Yonetim(unittest.TestCase):
         uyelik.register("panel@firma.com", "Panel Üyesi", "", "panel-sifre-1")
         view = server.admin_view()
         member = next(item for item in view["uyeler"] if item["eposta"] == "panel@firma.com")
-        self.assertEqual(set(member), {"eposta", "ad", "firma", "kayit", "pro_bitis", "raporlar", "sifre_var"})
+        self.assertEqual(set(member), {"eposta", "ad", "firma", "kayit", "pro_bitis", "raporlar", "sifre_var", "abonelik"})
         self.assertNotIn("$", json.dumps(view["uyeler"]))
 
     def test_pro_bitirme_ve_silme(self):

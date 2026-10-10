@@ -340,7 +340,7 @@
       <p class="muted">Son güncelleme: 11 Ekim 2026</p>
 
       <h2>Kısaca</h2>
-      <p>İhraçbul'da ürün aramak ve ücretsiz önizlemeyi görmek için üye olman gerekmez. Hesap açarsan ya da paket satın alırsan e-posta adresin, adın, varsa firma adın ve belirlediğin şifre istenir. Telefon numarası istenmez. Site çerez kullanmaz, reklam göstermez ve ziyaretçilerini izleyen bir analiz aracı çalıştırmaz.</p>
+      <p>İhraçbul'da ürün aramak ve ücretsiz önizlemeyi görmek için üye olman gerekmez. Hesap açarsan ya da paket satın alırsan e-posta adresin, adın, varsa firma adın ve belirlediğin şifre istenir. Telefon numarası yalnızca aylık abonelik satın alırken ödeme kuruluşu için istenir ve İhraçbul'da saklanmaz. Site çerez kullanmaz, reklam göstermez ve ziyaretçilerini izleyen bir analiz aracı çalıştırmaz.</p>
 
       <h2>Veri sorumlusu</h2>
       <p>İhraçbul'u Simge Solmaz işletir. Kişisel verilerinle ilgili her konuda <a href="mailto:ihracbul@gmail.com">ihracbul@gmail.com</a> adresine yazabilirsin.</p>
@@ -519,6 +519,7 @@
       <label class="co-field" for="co-surname">Soyad<input id="co-surname" autocomplete="family-name" maxlength="60"></label>
       <label class="co-field full" for="co-address">Fatura adresi<input id="co-address" autocomplete="street-address" maxlength="200"></label>
       <label class="co-field" for="co-city">Şehir<input id="co-city" autocomplete="address-level1" maxlength="40"></label>
+      <label class="co-field" for="co-phone" id="co-phone-wrap">Cep telefonu<input id="co-phone" type="tel" autocomplete="tel" placeholder="05xx xxx xx xx" maxlength="20"></label>
       <p class="co-hint full">Kart bilgilerin bir sonraki adımda iyzico'nun güvenli ödeme sayfasında alınır. İhraçbul kart bilgilerini görmez ve saklamaz.</p>
     </div>
     <label class="co-check"><input type="checkbox" id="co-consent"><span><a href="/mesafeli-satis" target="_blank">Mesafeli satış sözleşmesini</a> ve <a href="/iade" target="_blank">iptal ve iade koşullarını</a> okudum, kabul ediyorum. Hizmetin hemen sunulmasını ve bu nedenle cayma hakkımın bulunmadığını onaylıyorum.</span></label>
@@ -564,6 +565,10 @@
       <dt>Paket</dt><dd id="ac-plan"></dd>
       <dt>Açık raporlar</dt><dd id="ac-reports"></dd>
     </dl>
+    <div class="acct-sub" id="ac-sub" hidden>
+      <p id="ac-sub-text"></p>
+      <button type="button" class="link" id="ac-cancel">Aboneliği iptal et</button>
+    </div>
     <details class="acct-pass" id="ac-setpass">
       <summary id="ac-pass-title">Şifreyi değiştir</summary>
       <label class="co-field" for="ac-old" id="ac-old-wrap">Mevcut şifren<input id="ac-old" type="password" autocomplete="current-password"></label>

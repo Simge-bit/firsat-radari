@@ -23,3 +23,4 @@ services:
 #   ADMIN_PASSWORD: /yonetim panelinin şifresi. Verilmezse panel kapalıdır.
 # Gerçek ödeme için Render panelinden eklenir: IYZICO_API_KEY, IYZICO_SECRET_KEY, IYZICO_BASE
 #   (deneme: https://sandbox-api.iyzipay.com, gerçek: https://api.iyzipay.com). Anahtarlar yokken ödeme gösterim modunda kalır.
+#   IYZICO_PLAN_MONTHLY: aylık aboneliğin plan kodu; tools/iyzico_plan.py bir kez çalıştırılarak alınır. Yokken aylık paket satılmaz.

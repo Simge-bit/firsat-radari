@@ -71,11 +71,11 @@ function whyText(row) {
 
 // Haklar sunucunun imzaladığı bir belirteçte durur; tarayıcı yalnızca saklar ve her rapor isteğiyle geri gönderir.
 // Kilitli raporun verisi tarayıcıya hiç gelmez. Ödeme şimdilik gösterimdir: belirteç para alınmadan verilir.
-const access = { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false };
+const access = { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false, abonelik: "" };
 try {
   Object.assign(access, JSON.parse(localStorage.getItem("fr-erisim")) || {});
 } catch (error) { /* depolama kapalıysa ücretsiz planla devam */ }
-if (!access.token) Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [] });   // belirteçsiz eski kayıt geçersizdir
+if (!access.token) Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [], ad: "", firma: "", sifre_var: false, abonelik: "" });   // belirteçsiz eski kayıt geçersizdir
 
 function saveAccess() {
   try { localStorage.setItem("fr-erisim", JSON.stringify(access)); } catch (error) { /* yalnızca bu oturumda geçerli olur */ }
@@ -458,7 +458,7 @@ async function load(hs6) {
 const login = $("login");
 
 function signOut() {
-  Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false });
+  Object.assign(access, { email: "", pro: false, pro_until: 0, reports: [], token: "", ad: "", firma: "", sifre_var: false, abonelik: "" });
   saveAccess();
   if (current) load(current.hs6);
 }
@@ -478,6 +478,7 @@ $("account").addEventListener("click", () => {
   $("ac-setpass").open = !access.sifre_var;
   $("ac-error").hidden = $("ac-saved").hidden = true;
   $("ac-pass").value = $("ac-old").value = "";
+  renderSubscription();
   $("ac-email").textContent = access.email;
   $("ac-plan").textContent = access.pro
     ? "Pro, " + new Date(access.pro_until * 1000).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) + " tarihine kadar" : "Ücretsiz";
@@ -565,6 +566,35 @@ $("au-forgot").addEventListener("click", () => {
   $("lg-email").value = $("au-email").value;
   $("lg-error").hidden = true;
   showLogin("lg-form");
+});
+
+// Hesabım penceresindeki abonelik satırı: yenilenen abonelik iptal edilebilir, iptal edilen dönem sonuna kadar sürer.
+function renderSubscription() {
+  const until = access.pro_until ? new Date(access.pro_until * 1000).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" }) : "";
+  $("ac-sub").hidden = !["aktif", "iptal"].includes(access.abonelik);
+  $("ac-sub-text").textContent = access.abonelik === "aktif" ? "Aylık aboneliğin her ay kendiliğinden yenilenir."
+    : `Aboneliğin iptal edildi. Pro paketin ${until} tarihine kadar açık kalır ve sonrasında ödeme alınmaz.`;
+  $("ac-cancel").hidden = access.abonelik !== "aktif";
+  $("ac-cancel").textContent = "Aboneliği iptal et";
+  delete $("ac-cancel").dataset.onay;
+}
+
+$("ac-cancel").addEventListener("click", async () => {
+  const button = $("ac-cancel"), problem = $("ac-error");
+  if (button.dataset.onay !== "1") {             // yanlışlıkla basılmasın diye ikinci tıkla onaylanır
+    button.dataset.onay = "1";
+    button.textContent = "İptali onaylamak için tekrar tıkla";
+    return;
+  }
+  problem.hidden = true;
+  try {
+    const response = await postJson("/api/abonelik-iptal", { t: access.token });
+    const payload = await response.json();
+    if (!response.ok) { problem.textContent = payload.error || "Abonelik iptal edilemedi."; problem.hidden = false; return; }
+    Object.assign(access, payload);
+    saveAccess();
+    renderSubscription();
+  } catch (error) { problem.textContent = "Sunucuya ulaşılamadı. Tekrar dene."; problem.hidden = false; }
 });
 
 $("ac-save").addEventListener("click", async () => {
@@ -689,6 +719,7 @@ document.addEventListener("click", (event) => {
 const checkout = $("checkout");
 const REAL_PAYMENT = document.body.dataset.odeme === "gercek";      // sunucuda iyzico anahtarları varsa
 const BILLING = { ad: "co-name", soyad: "co-surname", adres: "co-address", sehir: "co-city" };
+// Aylık abonelikte iyzico cep telefonu da ister.
 const PAY_NOTES = {
   basarisiz: "Ödeme tamamlanmadı ve kartından para çekilmedi. Yeniden deneyebilirsin.",
   belirsiz: "Ödemenin sonucu şu an doğrulanamadı. Kartından para çekildiyse bize yazman yeterli, paketini biz tanımlarız.",
@@ -716,6 +747,7 @@ function openCheckout(kind) {
   $("co-email").value = access.email;
   $("co-email").readOnly = Boolean(access.email);      // giriş yapılmışsa paket o hesaba yazılır
   $("co-consent").checked = false;
+  $("co-phone-wrap").hidden = kind !== "pro";
   $("co-error").hidden = true;
   $("co-form").hidden = false;
   $("co-done").hidden = true;
@@ -736,6 +768,10 @@ $("co-pay").addEventListener("click", async () => {
     // Hak, sunucunun imzaladığı belirteçle gelir; ekrandaki rapor tam veriyle yeniden yüklenir.
     const billing = Object.fromEntries(Object.entries(BILLING).map(([key, id]) => [key, $(id).value.trim()]));
     if (REAL_PAYMENT && !Object.values(billing).every(Boolean)) return fail("Fatura için ad, soyad, adres ve şehir alanlarını doldur.");
+    if (REAL_PAYMENT && order.kind === "pro") {
+      if ($("co-phone").value.replace(/\D/g, "").length < 10) return fail("Aylık abonelik için geçerli bir cep telefonu numarası yaz.");
+      billing.telefon = $("co-phone").value;
+    }
     const response = await postJson("/api/odeme", { tur: order.kind, gtip: order.hs6 || "", eposta: $("co-email").value, onay: true, ...billing });
     const payload = await response.json();
     if (!response.ok) return fail(payload.error || "Ödeme tamamlanamadı. Tekrar dene.");
